@@ -1,0 +1,17 @@
+{
+  "name": "token_server_simulator",
+  "version": "0.1.0",
+  "description": "",
+  "type": "module",
+  "main": "src/simulation.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "simulate": "node src/simulation.js"
+  },
+  "keywords": [
+    "Token server",
+    "simulator"
+  ],
+  "author": "",
+  "license": "GPL-3.0"
+}
