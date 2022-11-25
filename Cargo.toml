@@ -1,7 +1,11 @@
 [package]
 name = "token_server"
+description = "Server to provide one-time access tokens for some set of meta data"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+repository = "https://github.com/HaKr/token_server.git"
+readme = "README.md"
 
 [dependencies]
 tokio = { version = "1.19", features = ["full"] }
