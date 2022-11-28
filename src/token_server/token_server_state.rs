@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::Mutex,
+    sync::RwLock,
     time::{Duration, Instant},
 };
 
@@ -15,7 +15,7 @@ use super::{
 };
 
 pub struct TokenServerState {
-    tokens: Mutex<TokenStore>,
+    tokens: RwLock<TokenStore>,
     instant_now: Instant,
     utc_now: DateTime<Utc>,
     token_lifetime: Duration,
@@ -30,7 +30,7 @@ struct DumpEntry<'de> {
 impl Default for TokenServerState {
     fn default() -> Self {
         Self {
-            tokens: Mutex::default(),
+            tokens: RwLock::default(),
             instant_now: Instant::now(),
             utc_now: chrono::Utc::now(),
             token_lifetime: Duration::from_secs(60),
@@ -46,7 +46,7 @@ impl TokenServerState {
     }
 
     pub fn create_token(&self, metadata: MetaData) -> Result<String, TokenError> {
-        let mut tokens = self.tokens.lock()?;
+        let mut tokens = self.tokens.write()?;
 
         let (tokenkey, expires) = self.new_token();
         let token = tokenkey.clone();
@@ -61,7 +61,7 @@ impl TokenServerState {
         tokenkey: &String,
         metadata_update: Option<MetaData>,
     ) -> Result<UpdateResponsePayload, TokenError> {
-        let mut tokens = self.tokens.lock()?;
+        let mut tokens = self.tokens.write()?;
         let now = Instant::now();
 
         let mut metadata = tokens.remove(tokenkey).map_or(
@@ -93,7 +93,7 @@ impl TokenServerState {
     }
 
     pub fn remove_token(&self, token: &String) -> Result<(), TokenError> {
-        let mut tokens = self.tokens.lock()?;
+        let mut tokens = self.tokens.write()?;
 
         let _meta = tokens.remove(token);
 
@@ -101,7 +101,7 @@ impl TokenServerState {
     }
 
     pub fn remove_expired_tokens(&self) -> Result<PurgeResult, TokenError> {
-        let mut tokens = self.tokens.lock()?;
+        let mut tokens = self.tokens.write()?;
         let now = Instant::now();
 
         let tokens_before = tokens.len();
@@ -116,7 +116,7 @@ impl TokenServerState {
     }
 
     pub fn dump_meta(&self) -> Result<(), TokenError> {
-        let tokens = self.tokens.lock()?;
+        let tokens = self.tokens.read()?;
 
         let report = tokens
             .iter()

@@ -3,10 +3,7 @@
 // macro expansion, thus suppress it for this entire file
 #![allow(clippy::use_self)]
 
-use std::{
-    num::ParseIntError,
-    sync::{MutexGuard, PoisonError},
-};
+use std::{num::ParseIntError, sync::PoisonError};
 
 use serde::Serialize;
 use thiserror::Error;
@@ -42,8 +39,8 @@ pub enum InvalidDuration {
 }
 
 // thiserror::from cannot accept anonymous lifetime specifier
-impl<T> From<PoisonError<MutexGuard<'_, T>>> for TokenError {
-    fn from(_: PoisonError<MutexGuard<'_, T>>) -> Self {
+impl<P> From<PoisonError<P>> for TokenError {
+    fn from(_: PoisonError<P>) -> Self {
         Self::InternalServerError
     }
 }
