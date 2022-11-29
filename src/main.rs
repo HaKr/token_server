@@ -1,7 +1,6 @@
 use std::{fmt::Display, net::SocketAddr, sync::Arc, time::Duration};
 
 use axum::{
-    extract::Extension,
     routing::{delete, head, post, put},
     Router,
 };
@@ -89,11 +88,8 @@ async fn main() -> Result<(), hyper::Error> {
     axum::Server::bind(&addr)
         .serve(
             token_server_routes
-                .layer(
-                    ServiceBuilder::new()
-                        .layer(TraceLayer::new_for_http())
-                        .layer(Extension(state)),
-                )
+                .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
+                .with_state(state)
                 .into_make_service(),
         )
         .await?;

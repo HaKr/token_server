@@ -16,8 +16,8 @@ use super::{
 
 pub struct TokenServerState {
     tokens: RwLock<TokenStore>,
-    instant_now: Instant,
-    utc_now: DateTime<Utc>,
+    started_at_instant: Instant,
+    started_at_utc: DateTime<Utc>,
     token_lifetime: Duration,
 }
 
@@ -31,8 +31,8 @@ impl Default for TokenServerState {
     fn default() -> Self {
         Self {
             tokens: RwLock::default(),
-            instant_now: Instant::now(),
-            utc_now: chrono::Utc::now(),
+            started_at_instant: Instant::now(),
+            started_at_utc: chrono::Utc::now(),
             token_lifetime: Duration::from_secs(60),
         }
     }
@@ -121,12 +121,12 @@ impl TokenServerState {
         let report = tokens
             .iter()
             .map(|(_, (expires, meta))| {
-                let duration = expires.duration_since(self.instant_now);
+                let duration = expires.duration_since(self.started_at_instant);
 
                 // let's assume no wrap occurs, otherwise funny debug log
                 #[allow(clippy::cast_possible_wrap)]
                 let expires: DateTime<Utc> =
-                    self.utc_now + chrono::Duration::seconds(duration.as_secs() as i64);
+                    self.started_at_utc + chrono::Duration::seconds(duration.as_secs() as i64);
 
                 DumpEntry {
                     expires: expires.format("%Y-%m-%d %H:%M:%S").to_string(),

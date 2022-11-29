@@ -1,7 +1,7 @@
 [package]
 name = "token_server"
 description = "Server to provide one-time access tokens for some set of meta data"
-version = "0.1.0"
+version = "0.1.2"
 edition = "2021"
 license-file = "LICENSE"
 repository = "https://github.com/HaKr/token_server.git"
@@ -15,8 +15,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tower = "0.4"
 tower-http = { version = "0.3", features = ["fs", "trace", "set-header"] }
-axum = { version = "0.5", features = ["multipart", "headers"] }
-axum-macros = "0.2"
+axum = { version = "0.6", features = ["multipart", "headers"] }
+axum-macros = "0.3"
 url = { version = "2.3", features = ["serde"] }
 gumdrop = "0.8"
 serde = { version = "1.0", features = ["derive"] }
