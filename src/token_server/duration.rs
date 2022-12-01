@@ -6,7 +6,7 @@ use super::InvalidDuration;
 
 type StdDuration = std::time::Duration;
 
-#[derive(Clone, PartialEq, PartialOrd, Copy)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Copy)]
 pub struct Duration {
     inner: StdDuration,
 }
