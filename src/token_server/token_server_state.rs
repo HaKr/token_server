@@ -1,8 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::RwLock,
-    time::{Duration, Instant},
-};
+use std::{collections::HashMap, sync::RwLock, time::Instant};
 
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -11,7 +7,7 @@ use uuid::Uuid;
 
 use super::{
     api::{MetaData, PurgeResult, TokenStore, UpdateResponsePayload},
-    TokenError,
+    Duration, TokenError,
 };
 
 pub struct TokenServerState {
@@ -33,7 +29,7 @@ impl Default for TokenServerState {
             tokens: RwLock::default(),
             started_at_instant: Instant::now(),
             started_at_utc: chrono::Utc::now(),
-            token_lifetime: Duration::from_secs(60),
+            token_lifetime: Duration::default(),
         }
     }
 }
@@ -146,7 +142,7 @@ impl TokenServerState {
     fn new_token(&self) -> (String, Instant) {
         (
             Uuid::new_v4().to_string(),
-            Instant::now() + self.token_lifetime,
+            self.token_lifetime + Instant::now(),
         )
     }
 }

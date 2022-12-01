@@ -4,7 +4,7 @@ import * as requests from "./requests.js";
 const arg = process.argv[2];
 const { instance, dump } = typeof arg == "string" && arg.length > 0 ? { instance: arg, dump: false } : { instance: "cli", dump: true };
 
-const sleep = (secs) => new Promise((resolve) => setTimeout(resolve, secs * 1_000));
+const sleep = (secs) => Promise.resolve();// new Promise((resolve) => setTimeout(resolve, secs * 1_000));
 
 async function main() {
     // create
