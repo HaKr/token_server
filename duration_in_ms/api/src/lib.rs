@@ -77,11 +77,13 @@ impl DurationInms {
 
 impl DurationInmsRangeAndDefault {
     #[must_use]
-    pub const fn new(minimal_seconds: u64, default_seconds: u64, maximal_seconds: u64) -> Self {
+    pub const fn new(minimal_ms: u64, default_ms: u64, maximal_ms: u64) -> Self {
+        debug_assert!(minimal_ms <= default_ms && default_ms <= maximal_ms);
+
         Self {
-            min: DurationInms::new(minimal_seconds),
-            default: DurationInms::new(default_seconds),
-            max: DurationInms::new(maximal_seconds),
+            min: DurationInms::new(minimal_ms),
+            default: DurationInms::new(default_ms),
+            max: DurationInms::new(maximal_ms),
         }
     }
 
