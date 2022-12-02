@@ -1,10 +1,10 @@
 #!/bin/sh
 clear
-node src/simulation.js A &
-node src/simulation.js B &
-node src/simulation.js C &
-node src/simulation.js D &
-node src/simulation.js E &
+node src/simulation.js A $1 &
+node src/simulation.js B $1 &
+node src/simulation.js C $1 &
+node src/simulation.js D $1 &
+node src/simulation.js E $1 &
 
 sleep 1s
 curl --silent --head http://localhost:3666/dump >/dev/null

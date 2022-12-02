@@ -4,11 +4,17 @@ import * as requests from "./requests.js";
 const instanceName = process.argv[2];
 const noSleep = process.argv[3];
 
-const { instance, dump } = typeof instanceName == "string" && instanceName.length > 0 ? { instance: instanceName, dump: false } : { instance: "cli", dump: true };
+const DEFAULT_INSTANCE = "cli";
 
-const sleep = typeof noSleep == "string" && noSleep.toLowerCase() == "no" ?
-    (_) => Promise.resolve() :
-    (secs) => new Promise((resolve) => setTimeout(resolve, secs * 1_000));
+const { instance, dump } = typeof instanceName == "string" && instanceName.length > 0 && instanceName != DEFAULT_INSTANCE ? { instance: instanceName, dump: false } : { instance: DEFAULT_INSTANCE, dump: true };
+
+const { sleep, doSleep } = typeof noSleep == "string" && noSleep.toLowerCase() == "no" ?
+    { sleep: (_) => Promise.resolve(), doSleep: false } :
+    {
+        sleep: (secs) => new Promise((resolve) => setTimeout(resolve, secs * 1_000)), doSleep: true
+    };
+
+console.debug(`Instance: ${instance}; dump: ${dump}; sleep? ${doSleep}`)
 
 async function main() {
     // create
@@ -30,7 +36,7 @@ async function main() {
 
     // refresh
     await Promise.all(tokens.filter(info => !info.invalid).map(async (token, index) => {
-        if (index == 0 && (instance == "cli" || instance == "A")) {
+        if (index == 0 && (instance == DEFAULT_INSTANCE || instance == "A")) {
             await requests.remove(instance, token);
         }
         await sleep(Math.random() * 3);
