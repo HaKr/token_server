@@ -5,7 +5,8 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use duration_in_ms::{macros::assign_duration_range, DurationInms, DurationInmsRangeAndDefault};
+use duration_in_ms::{DurationInms, DurationInmsRangeAndDefault};
+use duration_in_ms_macros::assign_duration_range;
 use tokio::time::sleep;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;

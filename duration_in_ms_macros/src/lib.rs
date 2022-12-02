@@ -1,4 +1,4 @@
-use duration_in_ms_api::{DurationInms, DurationInmsRangeAndDefault};
+use duration_in_ms::{DurationInms, DurationInmsRangeAndDefault};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{braced, parse::Parse, parse_macro_input, Ident, Token};
