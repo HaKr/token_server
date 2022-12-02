@@ -1,20 +1,21 @@
 use std::{collections::HashMap, sync::RwLock, time::Instant};
 
 use chrono::{DateTime, Utc};
+use duration_in_ms::DurationInms;
 use serde::Serialize;
 use tracing::debug;
 use uuid::Uuid;
 
 use super::{
     api::{MetaData, PurgeResult, TokenStore, UpdateResponsePayload},
-    Duration, TokenError,
+    TokenError,
 };
 
 pub struct TokenServerState {
     tokens: RwLock<TokenStore>,
     started_at_instant: Instant,
     started_at_utc: DateTime<Utc>,
-    token_lifetime: Duration,
+    token_lifetime: DurationInms,
 }
 
 #[derive(Serialize)]
@@ -29,13 +30,13 @@ impl Default for TokenServerState {
             tokens: RwLock::default(),
             started_at_instant: Instant::now(),
             started_at_utc: chrono::Utc::now(),
-            token_lifetime: Duration::default(),
+            token_lifetime: DurationInms::default(),
         }
     }
 }
 
 impl TokenServerState {
-    pub const fn with_token_lifetime(mut self, lifetime: Duration) -> Self {
+    pub const fn with_token_lifetime(mut self, lifetime: DurationInms) -> Self {
         self.token_lifetime = lifetime;
 
         self

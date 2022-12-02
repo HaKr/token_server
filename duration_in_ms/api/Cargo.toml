@@ -1,0 +1,13 @@
+[package]
+name = "duration_in_ms_api"
+description = "Duration defined in seconds precision"
+version = "0.1.1"
+edition = "2021"
+
+[lib]
+
+[dependencies]
+thiserror = "1.0"
+lazy-regex = "2.3"
+clap = { version = "4.0", features = ["derive", "string"] }
+syn = "1.0"

@@ -1,0 +1,15 @@
+[package]
+name = "duration_in_ms_macro"
+description = "macro to easily build a DurationInmsRangeAndDefault struct"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+duration_in_ms_api = { path = "../api" }
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = "1.0"
+
+
+[lib]
+proc-macro = true

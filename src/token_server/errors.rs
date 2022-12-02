@@ -3,7 +3,7 @@
 // macro expansion, thus suppress it for this entire file
 #![allow(clippy::use_self)]
 
-use std::{num::ParseIntError, sync::PoisonError};
+use std::sync::PoisonError;
 
 use serde::Serialize;
 use thiserror::Error;
@@ -18,24 +18,6 @@ pub enum TokenError {
 
     #[error("Deserialize failed")]
     MustNeverOccur,
-}
-
-#[derive(Error, Debug)]
-pub enum InvalidDuration {
-    #[error("Duration must be specified as a positive integer, immediately followed by h, min, s, ms, μs or ns")]
-    InvalidSyntax,
-
-    #[error("Invalid duration value")]
-    InvalidValue {
-        #[from]
-        source: ParseIntError,
-    },
-
-    #[error("'{sym}' is not supported as a duration symbol")]
-    UnsupportedDurationSymbol { sym: String },
-
-    #[error("Duration must lie between {min} and {max}")]
-    DurationMustLieBetween { min: String, max: String },
 }
 
 // thiserror::from cannot accept anonymous lifetime specifier

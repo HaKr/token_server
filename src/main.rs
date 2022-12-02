@@ -5,45 +5,43 @@ use axum::{
     Router,
 };
 use clap::Parser;
+use duration_in_ms::{macros::assign_duration_range, DurationInms, DurationInmsRangeAndDefault};
 use tokio::time::sleep;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, enabled, error, info, trace, warn, Level};
 
 mod token_server;
-use token_server::{routes, Duration, DurationRange, InvalidDuration, TokenServerState};
+use token_server::{routes, TokenServerState};
 
-const TOKEN_LIFETIME_RANGE: DurationRange = DurationRange::new(30 * 60, 96 * 60 * 60);
-const PURGE_INTERVAL_RANGE: DurationRange = DurationRange::new(1, 90 * 60);
-
-const TOKEN_LIFETIME_DEFAULT: Duration = Duration::new(60);
-const PURGE_INTERVAL_DEFAULT: Duration = Duration::new(2 * 60 * 60);
+assign_duration_range!( TOKEN_LIFETIME_RANGE = {default: 2h, min: 10min, max: 60day});
+assign_duration_range!( PURGE_INTERVAL_RANGE = {min: 1500ms, default: 1min, max: 90min});
 
 #[derive(Parser)]
 struct ServerOptions {
     /// allow for HEAD /dump endpoint to log all metadata
-    #[arg(short, long)]
+    #[arg(long)]
     dump: bool,
 
     /// Which port to listen on
-    #[arg(short = 'P', long, default_value_t = 3666)]
+    #[arg(short, long, default_value_t = 3666, value_parser = clap::value_parser!(u16).range(3000..) ) ]
     port: u16,
 
-    /// What frequency to remove expired tokens, between 1s and 90min
     #[arg(
-        short, long,
-        default_value = TOKEN_LIFETIME_DEFAULT,
-        value_parser = parse_purge_interval_duration
+        long,
+        help = format!("What frequency to remove expired tokens, between {}", PURGE_INTERVAL_RANGE),
+        default_value = PURGE_INTERVAL_RANGE.default,
+        value_parser = {|purge_interval: &str| DurationInms::try_from(purge_interval)?.must_be_in(&PURGE_INTERVAL_RANGE) }
     )]
-    purge_interval: Duration,
+    purge_interval: DurationInms,
 
-    // How long does a token remain valid, between 30min and 96h
     #[arg(
-        short, long,
-        default_value = PURGE_INTERVAL_DEFAULT,
-        value_parser =parse_token_lifetime_duration
+        long,
+        help = format!("How long does a token remain valid, between {}", TOKEN_LIFETIME_RANGE),
+        default_value = TOKEN_LIFETIME_RANGE.default,
+        value_parser = {|token_lifetime: &str| DurationInms::try_from(token_lifetime)?.must_be_in(&TOKEN_LIFETIME_RANGE) }
     )]
-    token_lifetime: Duration,
+    token_lifetime: DurationInms,
 }
 
 #[tokio::main]
@@ -56,13 +54,14 @@ async fn main() -> Result<(), hyper::Error> {
     let addr = SocketAddr::from(([127, 0, 0, 1], opts.port));
     let state = Arc::new(TokenServerState::default().with_token_lifetime(opts.token_lifetime));
     let clean_state = state.clone();
+    let log_debug_enabled = enabled!(Level::DEBUG);
 
     tokio::spawn(async move {
         loop {
             sleep((&opts.purge_interval).into()).await;
             match clean_state.clone().remove_expired_tokens() {
                 Ok(purged) => {
-                    if enabled!(Level::DEBUG) && purged.purged > 0 {
+                    if log_debug_enabled && purged.purged > 0 {
                         debug!("PURGED: {}", purged);
                     } else {
                         trace!("PURGED: {}", purged);
@@ -78,11 +77,10 @@ async fn main() -> Result<(), hyper::Error> {
         .route("/token", put(routes::update_token))
         .route("/token", delete(routes::remove_token));
 
-    if opts.dump {
-        if !enabled!(Level::DEBUG) {
-            warn!("HEAD /dump will not provide logging; use RUSTLOG='token_server=debug'");
-        }
+    if opts.dump && log_debug_enabled {
         token_server_routes = token_server_routes.route("/dump", head(routes::dump_meta));
+    } else {
+        warn!("HEAD /dump will not provide logging; use RUSTLOG='token_server=debug'");
     }
 
     axum::Server::bind(&addr)
@@ -95,14 +93,6 @@ async fn main() -> Result<(), hyper::Error> {
         .await?;
 
     Ok(())
-}
-
-fn parse_token_lifetime_duration(option: &str) -> Result<Duration, InvalidDuration> {
-    TOKEN_LIFETIME_RANGE.contains(option.try_into()?)
-}
-
-fn parse_purge_interval_duration(option: &str) -> Result<Duration, InvalidDuration> {
-    PURGE_INTERVAL_RANGE.contains(option.try_into()?)
 }
 
 impl Display for ServerOptions {
