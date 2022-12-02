@@ -11,5 +11,5 @@ thiserror = "1.0"
 lazy-regex = "2.3"
 clap = { version = "4.0", features = ["derive", "string"] }
 syn = "1.0"
-duration_in_ms_macro = { path = "macro" }
-duration_in_ms_api = { path = "api" }
+duration_in_ms_macro = { path = "macro", version = "0.1" }
+duration_in_ms_api = { path = "api", version = "0.1" }

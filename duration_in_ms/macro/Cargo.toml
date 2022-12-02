@@ -5,7 +5,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-duration_in_ms_api = { path = "../api" }
+duration_in_ms_api = { path = "../api", version = "0.1" }
 proc-macro2 = "1.0"
 quote = "1.0"
 syn = "1.0"
