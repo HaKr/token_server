@@ -4,7 +4,7 @@ members = ["duration_in_ms", "duration_in_ms_macros"]
 [package]
 name = "token_server"
 description = "Server to provide one-time access tokens for some set of meta data"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 license-file = "LICENSE"
 repository = "https://github.com/HaKr/token_server.git"
