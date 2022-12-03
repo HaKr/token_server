@@ -5,8 +5,8 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use duration_in_ms::{DurationInms, DurationInmsRangeAndDefault};
-use duration_in_ms_macros::assign_duration_range;
+use duration_in_ms::{DurationInms, DurationInmsValidator};
+use duration_in_ms_macros::assign_duration_range_validator;
 use tokio::time::sleep;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -15,8 +15,8 @@ use tracing::{debug, enabled, error, info, trace, warn, Level};
 mod token_server;
 use token_server::{routes, TokenServerState};
 
-assign_duration_range!( TOKEN_LIFETIME_RANGE = {default: 2h, min: 10min, max: 60day});
-assign_duration_range!( PURGE_INTERVAL_RANGE = {min: 1500ms, default: 1min, max: 90min});
+assign_duration_range_validator!( TOKEN_LIFETIME_RANGE = {default: 2h, min: 10min, max: 60day});
+assign_duration_range_validator!( PURGE_INTERVAL_RANGE = {min: 1500ms, default: 1min, max: 90min});
 
 #[derive(Parser)]
 struct ServerOptions {
@@ -32,7 +32,7 @@ struct ServerOptions {
         long,
         help = format!("What frequency to remove expired tokens, between {}", PURGE_INTERVAL_RANGE),
         default_value = PURGE_INTERVAL_RANGE.default,
-        value_parser = {|purge_interval: &str| DurationInms::try_from(purge_interval)?.must_be_in(&PURGE_INTERVAL_RANGE) }
+        value_parser = {|interval: &str|PURGE_INTERVAL_RANGE.parse_and_validate(interval)}
     )]
     purge_interval: DurationInms,
 
@@ -40,7 +40,7 @@ struct ServerOptions {
         long,
         help = format!("How long does a token remain valid, between {}", TOKEN_LIFETIME_RANGE),
         default_value = TOKEN_LIFETIME_RANGE.default,
-        value_parser = {|token_lifetime: &str| DurationInms::try_from(token_lifetime)?.must_be_in(&TOKEN_LIFETIME_RANGE) }
+        value_parser = {|lifetime: &str|TOKEN_LIFETIME_RANGE.parse_and_validate(lifetime)}
     )]
     token_lifetime: DurationInms,
 }
@@ -99,7 +99,7 @@ async fn main() -> Result<(), hyper::Error> {
 impl Display for ServerOptions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "Port: {}, Token lifetime: {}, Purge cycle: {}, HEAD /dump endpoint {}",
+            "Port: {}, Token lifetime: {:#}, Purge cycle: {:#}, HEAD /dump endpoint {}",
             self.port,
             self.token_lifetime,
             self.purge_interval,
