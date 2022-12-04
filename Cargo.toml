@@ -1,18 +1,18 @@
 [workspace]
-members = ["duration_in_ms", "duration_in_ms_macros"]
+members = ["duration-human", "clap-duration"]
 
 [package]
 name = "token_server"
 description = "Server to provide one-time access tokens for some set of meta data"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 license-file = "LICENSE"
 repository = "https://github.com/HaKr/token_server.git"
 readme = "README.md"
 
 [dependencies]
-duration_in_ms = { path = "duration_in_ms", version = "0.1" }
-duration_in_ms_macros = { path = "./duration_in_ms_macros", version = "0.1" }
+duration-human = { path = "./duration-human", version = "0.1.4" }
+clap-duration = { path = "./clap-duration", version = "0.1.4" }
 
 tokio = { version = "1.19", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }

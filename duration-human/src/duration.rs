@@ -5,7 +5,7 @@ use syn::{
     LitInt,
 };
 
-use crate::{DurationError, DurationInmsValidator};
+use crate::{DurationError, DurationHumanValidator};
 
 type StdDuration = std::time::Duration;
 
@@ -22,39 +22,39 @@ const CENTURY: u64 = 100 * YEAR;
 ///
 /// ## Examples
 /// ```
-/// # use duration_in_ms::DurationInms;
-/// let duration = DurationInms::try_from("80h").unwrap();
+/// # use duration_human::DurationHuman;
+/// let duration = DurationHuman::try_from("80h").unwrap();
 /// assert_eq!(format!("{:#}", duration), "3 day 8h".to_string());
 /// assert_eq!(format!("{}", duration), "80h".to_string());
-/// let duration = DurationInms::try_from("72h").unwrap();
+/// let duration = DurationHuman::try_from("72h").unwrap();
 /// assert_eq!(format!("{:#}", duration), "3 day".to_string());
 /// assert_eq!(format!("{}", duration), "3 day".to_string());
-/// let duration = DurationInms::try_from("18446744073709551615ns").unwrap();
+/// let duration = DurationHuman::try_from("18446744073709551615ns").unwrap();
 /// assert_eq!(format!("{:#}", duration), "5 century 84 year 11 month 1 week 6 day 23h 34min 33s 709ms".to_string());
-/// let duration = DurationInms::try_from("18446744073709551615ms").unwrap();
+/// let duration = DurationHuman::try_from("18446744073709551615ms").unwrap();
 /// assert_eq!(format!("{:#}", duration), "5849424 century 17 year 4 month 1 week 2 day 14h 25min 51s 615ms".to_string());
 /// // precision is ms
-/// let duration = DurationInms::try_from("604800μs").unwrap();
+/// let duration = DurationHuman::try_from("604800μs").unwrap();
 /// assert_eq!(format!("{:#}", duration), "604ms".to_string());
 /// assert_eq!(duration.to_string(), "604ms".to_string());
-/// let duration = DurationInms::try_from("604800ms").unwrap();
+/// let duration = DurationHuman::try_from("604800ms").unwrap();
 /// assert_eq!(format!("{:#}", duration), "10min 4s 800ms".to_string());
 /// assert_eq!(duration.to_string(), "604800ms".to_string());
-/// let duration = DurationInms::try_from("604800s").unwrap();
+/// let duration = DurationHuman::try_from("604800s").unwrap();
 /// assert_eq!(format!("{:#}", duration), "1 week".to_string());
-/// let duration = DurationInms::try_from("604800s").unwrap();
+/// let duration = DurationHuman::try_from("604800s").unwrap();
 /// assert_eq!(format!("{:#}", duration), "1 week".to_string(),"A");
 /// assert_eq!(format!("{}", duration), "1 week".to_string(),"B");
-/// let duration = DurationInms::try_from("608430s").unwrap();
+/// let duration = DurationHuman::try_from("608430s").unwrap();
 /// assert_eq!(format!("{:#}", duration), "1 week 1h 30s".to_string());
 /// assert_eq!(format!("{}", duration), "608430s".to_string(),"C");
 /// ```
 #[derive(Clone, PartialEq, Eq, PartialOrd, Copy)]
-pub struct DurationInms {
+pub struct DurationHuman {
     inner: StdDuration,
 }
 
-impl DurationInms {
+impl DurationHuman {
     pub const ONE_SECOND: Self = Self::new(SEC);
     pub const ONE_MILLISECOND: Self = Self::new(1);
 
@@ -66,12 +66,12 @@ impl DurationInms {
     }
 
     #[must_use]
-    pub fn is_in(&self, range: &DurationInmsValidator) -> bool {
+    pub fn is_in(&self, range: &DurationHumanValidator) -> bool {
         range.contains(self)
     }
 }
 
-impl Default for DurationInms {
+impl Default for DurationHuman {
     fn default() -> Self {
         Self {
             inner: StdDuration::from_millis(MINUTE),
@@ -79,17 +79,17 @@ impl Default for DurationInms {
     }
 }
 
-impl Parse for DurationInms {
+impl Parse for DurationHuman {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let duration_with_unit = input.parse::<LitInt>()?.to_string();
         match TryInto::<Self>::try_into(duration_with_unit.as_str()) {
-            Ok(duration_in_ms) => Ok(duration_in_ms),
+            Ok(duration_human) => Ok(duration_human),
             Err(e) => Err(input.error(e.to_string())),
         }
     }
 }
 
-impl Add<Instant> for DurationInms {
+impl Add<Instant> for DurationHuman {
     type Output = Instant;
 
     fn add(self, rhs: Instant) -> Self::Output {
@@ -97,19 +97,19 @@ impl Add<Instant> for DurationInms {
     }
 }
 
-impl From<&DurationInms> for StdDuration {
-    fn from(duration: &DurationInms) -> Self {
+impl From<&DurationHuman> for StdDuration {
+    fn from(duration: &DurationHuman) -> Self {
         duration.inner
     }
 }
 
-impl From<u64> for DurationInms {
+impl From<u64> for DurationHuman {
     fn from(ms: u64) -> Self {
         Self::new(ms)
     }
 }
 
-impl TryFrom<&str> for DurationInms {
+impl TryFrom<&str> for DurationHuman {
     type Error = DurationError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
@@ -144,20 +144,20 @@ impl TryFrom<&str> for DurationInms {
     }
 }
 
-impl From<DurationInms> for clap::builder::OsStr {
-    fn from(duration: DurationInms) -> Self {
+impl From<DurationHuman> for clap::builder::OsStr {
+    fn from(duration: DurationHuman) -> Self {
         duration.to_string().into()
     }
 }
 
-impl From<&DurationInms> for u64 {
+impl From<&DurationHuman> for u64 {
     #[allow(clippy::cast_possible_truncation)] // cast is okay, as u64::MAX as milliseconds is more than 500 million years
-    fn from(duration: &DurationInms) -> Self {
+    fn from(duration: &DurationHuman) -> Self {
         duration.inner.as_millis() as Self
     }
 }
 
-impl Display for DurationInms {
+impl Display for DurationHuman {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut ms: u64 = self.into();
         if f.alternate() {

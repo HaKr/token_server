@@ -5,16 +5,16 @@ use syn::{
     Ident, Token,
 };
 
-use crate::{DurationError, DurationInms, SEC};
+use crate::{DurationError, DurationHuman, SEC};
 
 #[derive(Default)]
-pub struct DurationInmsValidator {
-    pub min: DurationInms,
-    pub default: DurationInms,
-    pub max: DurationInms,
+pub struct DurationHumanValidator {
+    pub min: DurationHuman,
+    pub default: DurationHuman,
+    pub max: DurationHuman,
 }
 
-impl DurationInmsValidator {
+impl DurationHumanValidator {
     #[must_use]
     pub const fn new(minimal_ms: u64, default_ms: u64, maximal_ms: u64) -> Self {
         assert!(minimal_ms <= default_ms && default_ms <= maximal_ms);
@@ -23,9 +23,9 @@ impl DurationInmsValidator {
         assert!(maximal_ms >= SEC);
 
         Self {
-            min: DurationInms::new(minimal_ms),
-            default: DurationInms::new(default_ms),
-            max: DurationInms::new(maximal_ms),
+            min: DurationHuman::new(minimal_ms),
+            default: DurationHuman::new(default_ms),
+            max: DurationHuman::new(maximal_ms),
         }
     }
 
@@ -40,24 +40,24 @@ impl DurationInmsValidator {
             Err(DurationError::DurationValidationDefaultMustBeMoreThanOneSecond)
         } else {
             Ok(Self {
-                min: DurationInms::new(minimal_ms),
-                default: DurationInms::new(default_ms),
-                max: DurationInms::new(maximal_ms),
+                min: DurationHuman::new(minimal_ms),
+                default: DurationHuman::new(default_ms),
+                max: DurationHuman::new(maximal_ms),
             })
         }
     }
 
     /// To be used as a validate_parser for clap
     ///
-    /// ```ignore
+    /// ```compile_error
     ///  validate_parser = {|lifetime: &str|duration_range.parse_and_validate(lifetime)}
     /// ```
     /// # Errors
     ///
     /// Will return `Err` if duration is not within the given range
     /// permission to read it.
-    pub fn parse_and_validate(&self, duration: &str) -> Result<DurationInms, DurationError> {
-        let duration_in_ms = DurationInms::try_from(duration)?;
+    pub fn parse_and_validate(&self, duration: &str) -> Result<DurationHuman, DurationError> {
+        let duration_in_ms = DurationHuman::try_from(duration)?;
 
         if self.contains(&duration_in_ms) {
             Ok(duration_in_ms)
@@ -69,12 +69,12 @@ impl DurationInmsValidator {
     }
 
     #[must_use]
-    pub fn contains(&self, duration: &DurationInms) -> bool {
+    pub fn contains(&self, duration: &DurationHuman) -> bool {
         self.min <= *duration && *duration <= self.max
     }
 }
 
-impl Parse for DurationInmsValidator {
+impl Parse for DurationHumanValidator {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let parser = Punctuated::<ParsedDuration, Token![,]>::parse_separated_nonempty;
         let durations: Vec<ParsedDuration> = parser(input)?.into_iter().collect();
@@ -86,8 +86,8 @@ impl Parse for DurationInmsValidator {
     }
 }
 
-impl From<&DurationInmsValidator> for (u64, u64, u64) {
-    fn from(duration: &DurationInmsValidator) -> Self {
+impl From<&DurationHumanValidator> for (u64, u64, u64) {
+    fn from(duration: &DurationHumanValidator) -> Self {
         (
             (&duration.min).into(),
             (&duration.default).into(),
@@ -96,8 +96,8 @@ impl From<&DurationInmsValidator> for (u64, u64, u64) {
     }
 }
 
-impl From<&DurationInmsValidator> for (String, String, String) {
-    fn from(duration: &DurationInmsValidator) -> Self {
+impl From<&DurationHumanValidator> for (String, String, String) {
+    fn from(duration: &DurationHumanValidator) -> Self {
         (
             duration.min.to_string(),
             duration.default.to_string(),
@@ -106,7 +106,7 @@ impl From<&DurationInmsValidator> for (String, String, String) {
     }
 }
 
-impl Display for DurationInmsValidator {
+impl Display for DurationHumanValidator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
             "{min} and {max}",
@@ -118,7 +118,7 @@ impl Display for DurationInmsValidator {
 
 struct ParsedDuration {
     arg: DurationRangeArgument,
-    duration: DurationInms,
+    duration: DurationHuman,
 }
 
 enum DurationRangeArgument {
@@ -148,7 +148,7 @@ impl Parse for ParsedDuration {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name: DurationRangeArgument = input.parse()?;
         let _punc: Token![:] = input.parse()?;
-        let value: DurationInms = input.parse()?;
+        let value: DurationHuman = input.parse()?;
 
         Ok(Self {
             arg: name,
@@ -159,9 +159,9 @@ impl Parse for ParsedDuration {
 
 #[derive(Default)]
 struct DurationRangeWithOptionalValues {
-    min: Option<DurationInms>,
-    max: Option<DurationInms>,
-    default: Option<DurationInms>,
+    min: Option<DurationHuman>,
+    max: Option<DurationHuman>,
+    default: Option<DurationHuman>,
 }
 
 impl From<Vec<ParsedDuration>> for DurationRangeWithOptionalValues {
@@ -178,10 +178,10 @@ impl From<Vec<ParsedDuration>> for DurationRangeWithOptionalValues {
     }
 }
 
-impl TryFrom<(DurationInms, DurationInms)> for DurationInmsValidator {
+impl TryFrom<(DurationHuman, DurationHuman)> for DurationHumanValidator {
     type Error = DurationError;
 
-    fn try_from(value: (DurationInms, DurationInms)) -> Result<Self, Self::Error> {
+    fn try_from(value: (DurationHuman, DurationHuman)) -> Result<Self, Self::Error> {
         let (minimal, maximal) = &value;
         if minimal > maximal {
             Err(DurationError::DurationValidationMinMustBeLessOrEqualMax {
@@ -195,10 +195,10 @@ impl TryFrom<(DurationInms, DurationInms)> for DurationInmsValidator {
     }
 }
 
-impl TryFrom<(DurationInms, DurationInms, DurationInms)> for DurationInmsValidator {
+impl TryFrom<(DurationHuman, DurationHuman, DurationHuman)> for DurationHumanValidator {
     type Error = DurationError;
 
-    fn try_from(value: (DurationInms, DurationInms, DurationInms)) -> Result<Self, Self::Error> {
+    fn try_from(value: (DurationHuman, DurationHuman, DurationHuman)) -> Result<Self, Self::Error> {
         let (minimal, default, maximal) = &value;
         if minimal > default || maximal < default {
             Err(DurationError::DurationValidationMustBeOrdered {
@@ -214,57 +214,59 @@ impl TryFrom<(DurationInms, DurationInms, DurationInms)> for DurationInmsValidat
     }
 }
 
-impl TryFrom<(u64, u64, u64)> for DurationInmsValidator {
+impl TryFrom<(u64, u64, u64)> for DurationHumanValidator {
     type Error = DurationError;
 
     fn try_from(value: (u64, u64, u64)) -> Result<Self, Self::Error> {
-        let min_def_max: (DurationInms, DurationInms, DurationInms) = (
-            (DurationInms::from(value.0)),
-            (DurationInms::from(value.1)),
-            (DurationInms::from(value.2)),
+        let min_def_max: (DurationHuman, DurationHuman, DurationHuman) = (
+            (DurationHuman::from(value.0)),
+            (DurationHuman::from(value.1)),
+            (DurationHuman::from(value.2)),
         );
         Self::try_from(min_def_max)
     }
 }
 
-impl TryFrom<(&str, &str, &str)> for DurationInmsValidator {
+impl TryFrom<(&str, &str, &str)> for DurationHumanValidator {
     type Error = DurationError;
 
     fn try_from(value: (&str, &str, &str)) -> Result<Self, Self::Error> {
-        let min_def_max: (DurationInms, DurationInms, DurationInms) = (
-            (DurationInms::try_from(value.0)?),
-            (DurationInms::try_from(value.1)?),
-            (DurationInms::try_from(value.2)?),
+        let min_def_max: (DurationHuman, DurationHuman, DurationHuman) = (
+            (DurationHuman::try_from(value.0)?),
+            (DurationHuman::try_from(value.1)?),
+            (DurationHuman::try_from(value.2)?),
         );
 
         Self::try_from(min_def_max)
     }
 }
 
-impl TryFrom<(u64, u64)> for DurationInmsValidator {
+impl TryFrom<(u64, u64)> for DurationHumanValidator {
     type Error = DurationError;
 
     fn try_from(value: (u64, u64)) -> Result<Self, Self::Error> {
-        let min_max: (DurationInms, DurationInms) =
-            ((DurationInms::from(value.0)), (DurationInms::from(value.1)));
+        let min_max: (DurationHuman, DurationHuman) = (
+            (DurationHuman::from(value.0)),
+            (DurationHuman::from(value.1)),
+        );
         Self::try_from(min_max)
     }
 }
 
-impl TryFrom<(&str, &str)> for DurationInmsValidator {
+impl TryFrom<(&str, &str)> for DurationHumanValidator {
     type Error = DurationError;
 
     fn try_from(value: (&str, &str)) -> Result<Self, Self::Error> {
-        let min_max: (DurationInms, DurationInms) = (
-            (DurationInms::try_from(value.0)?),
-            (DurationInms::try_from(value.1)?),
+        let min_max: (DurationHuman, DurationHuman) = (
+            (DurationHuman::try_from(value.0)?),
+            (DurationHuman::try_from(value.1)?),
         );
 
         Self::try_from(min_max)
     }
 }
 
-impl TryFrom<Vec<ParsedDuration>> for DurationInmsValidator {
+impl TryFrom<Vec<ParsedDuration>> for DurationHumanValidator {
     type Error = DurationError;
 
     fn try_from(value: Vec<ParsedDuration>) -> Result<Self, Self::Error> {

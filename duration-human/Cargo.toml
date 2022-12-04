@@ -1,9 +1,9 @@
 [package]
-name = "duration_in_ms"
-description = "Duration defined in millisecond precision"
-version = "0.1.3"
+name = "duration-human"
+description = "Duration wrapper to interact with humans"
+version = "0.1.4"
 edition = "2021"
-repository = "https://github.com/HaKr/token_server/tree/main/duration_in_ms"
+repository = "https://github.com/HaKr/token_server/tree/main/duration-human"
 license-file = "LICENSE"
 readme = "README.md"
 

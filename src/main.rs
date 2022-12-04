@@ -5,8 +5,8 @@ use axum::{
     Router,
 };
 use clap::Parser;
-use duration_in_ms::{DurationInms, DurationInmsValidator};
-use duration_in_ms_macros::assign_duration_range_validator;
+use clap_duration::assign_duration_range_validator;
+use duration_human::{DurationHuman, DurationHumanValidator};
 use tokio::time::sleep;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
@@ -34,7 +34,7 @@ struct ServerOptions {
         default_value = PURGE_INTERVAL_RANGE.default,
         value_parser = {|interval: &str|PURGE_INTERVAL_RANGE.parse_and_validate(interval)}
     )]
-    purge_interval: DurationInms,
+    purge_interval: DurationHuman,
 
     #[arg(
         long,
@@ -42,7 +42,7 @@ struct ServerOptions {
         default_value = TOKEN_LIFETIME_RANGE.default,
         value_parser = {|lifetime: &str|TOKEN_LIFETIME_RANGE.parse_and_validate(lifetime)}
     )]
-    token_lifetime: DurationInms,
+    token_lifetime: DurationHuman,
 }
 
 #[tokio::main]
