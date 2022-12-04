@@ -1,7 +1,5 @@
-# Macros for duration_in_ms package
+# Macros clap value parsers
 
-## duration_range
-Create a new Instance of DurationInmsRangeAndDefault with compile time checked arguments
+This package is continued under the name [clap-duration]
 
-## assign_duration_range
-Declare a const as a new Instance of DurationInmsRangeAndDefault with compile time checked arguments
+[clap-duration]: https://crates.io/crates/clap-duration
