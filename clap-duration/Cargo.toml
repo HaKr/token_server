@@ -1,7 +1,7 @@
 [package]
 name = "clap-duration"
 description = "Macros for clap argument value_parse"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 repository = "https://github.com/HaKr/token_server/tree/main/clap-duration"
 license-file = "LICENSE"
@@ -12,7 +12,8 @@ readme = "README.md"
 proc-macro = true
 
 [dependencies]
-duration-human = { path = "../duration-human", version = "0.1.4" }
+duration-human = { path = "../duration-human", version = "0.1.5" }
 thiserror = "1.0"
 syn = "1.0"
 quote = "1.0"
+clap = "4.0"

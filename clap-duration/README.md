@@ -1,28 +1,36 @@
 # Macros for clap argument value_parse
+Macros to add duration value parsers for clap arguments, where the fields are compile-time checked
+  
+    1. duration_range_value_parse
+       To be used as the value_parse value on a clap arg 
+    2. assign_duration_range_validator
+       Create a constant to be used on multiple arguments of a clap arg
+    3. duration_range_validator 
+       Create a DurationHumanValidator with compile-time checking
 
-## Example: value_parse
- ```rust
- use clap::Parser;
- use clap_duration::duration_range_value_parse;
- use duration_human::{DurationHuman, DurationHumanValidator};
+## Macro duration_range_value_parse
+```rust
+use clap::Parser;
+use clap_duration::duration_range_value_parse;
+use duration_human::{DurationHuman, DurationHumanValidator};
 
- #[derive(Parser)]
- struct SampleOptions {
+#[derive(Parser)]
+struct SampleOptions {
+    #[arg(
+        long, default_value="666000ms",
+        value_parser = duration_range_value_parse!(min: 10min, max: 1h)
+    )]
+    interval: DurationHuman,
+}
 
-     #[arg(
-         long, default_value="666000ms",
-         value_parser = duration_range_value_parse!(min: 10min, max: 1h)
-     )]
-     interval: DurationHuman,
- }
-
- let opts = SampleOptions::parse();
- assert_eq!(format!("{:#}",opts.interval), format!("11min 6s"));
- assert_eq!(opts.interval.to_string(), "666s".to_string());
-
+let opts = SampleOptions::parse();
+assert_eq!(format!("{:#}",opts.interval), format!("11min 6s"));
+assert_eq!(opts.interval.to_string(), "666s".to_string())
 ```
 
-## Example: Range and default from a constant
+
+
+## Macro: assign_duration_range_validator
 ```rust
 use clap::Parser;
 use clap_duration::duration_range_value_parse;

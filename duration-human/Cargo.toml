@@ -1,7 +1,7 @@
 [package]
 name = "duration-human"
 description = "Duration wrapper to interact with humans"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 repository = "https://github.com/HaKr/token_server/tree/main/duration-human"
 license-file = "LICENSE"
@@ -13,3 +13,4 @@ thiserror = "1.0"
 syn = "1.0"
 lazy-regex = "2.3"
 clap = { version = "4.0", features = ["derive", "string"] }
+regex = "1.7"

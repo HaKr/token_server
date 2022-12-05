@@ -11,8 +11,8 @@ repository = "https://github.com/HaKr/token_server.git"
 readme = "README.md"
 
 [dependencies]
-duration-human = { path = "./duration-human", version = "0.1.4" }
-clap-duration = { path = "./clap-duration", version = "0.1.4" }
+duration-human = { path = "./duration-human", version = "0.1.5" }
+clap-duration = { path = "./clap-duration", version = "0.1.5" }
 
 tokio = { version = "1.19", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }
