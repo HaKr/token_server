@@ -97,6 +97,6 @@ which in turn must be a single JSON object.
   * on error:
   ```json
     {
-        Err: "InvalidToken"
+        "Err": "InvalidToken"
     }
 ```
