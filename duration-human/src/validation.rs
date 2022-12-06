@@ -5,7 +5,7 @@ use syn::{
     Ident, Token,
 };
 
-use crate::{DurationError, DurationHuman, SEC};
+use crate::{DurationError, DurationHuman};
 
 #[derive(Default)]
 pub struct DurationHumanValidator {
@@ -15,39 +15,43 @@ pub struct DurationHumanValidator {
 }
 
 impl DurationHumanValidator {
+    /// Create a new validator, with the given minimal, default and maximal durations
+    ///
+    /// ## Panics
+    /// If any value < 1s, or if not: `minimal_nanos` <= `default_nanos` <= `maximal_nanos`
     #[must_use]
-    pub const fn new(minimal_ms: u64, default_ms: u64, maximal_ms: u64) -> Self {
-        assert!(minimal_ms <= default_ms && default_ms <= maximal_ms);
-        assert!(minimal_ms >= SEC);
-        assert!(default_ms >= SEC);
-        assert!(maximal_ms >= SEC);
+    pub const fn new(minimal_nanos: u64, default_nanos: u64, maximal_nanos: u64) -> Self {
+        assert!(minimal_nanos <= default_nanos && default_nanos <= maximal_nanos);
+        assert!(minimal_nanos >= DurationHuman::SEC);
+        assert!(default_nanos >= DurationHuman::SEC);
+        assert!(maximal_nanos >= DurationHuman::SEC);
 
         Self {
-            min: DurationHuman::new(minimal_ms),
-            default: DurationHuman::new(default_ms),
-            max: DurationHuman::new(maximal_ms),
+            min: DurationHuman::new(minimal_nanos),
+            default: DurationHuman::new(default_nanos),
+            max: DurationHuman::new(maximal_nanos),
         }
     }
 
     const fn try_new(
-        minimal_ms: u64,
-        default_ms: u64,
-        maximal_ms: u64,
+        minimal_nanos: u64,
+        default_nanos: u64,
+        maximal_nanos: u64,
     ) -> Result<Self, DurationError> {
-        if minimal_ms < SEC {
+        if minimal_nanos < DurationHuman::SEC {
             Err(DurationError::DurationValidationMinMustBeMoreThanOneSecond)
-        } else if default_ms < SEC {
+        } else if default_nanos < DurationHuman::SEC {
             Err(DurationError::DurationValidationDefaultMustBeMoreThanOneSecond)
         } else {
             Ok(Self {
-                min: DurationHuman::new(minimal_ms),
-                default: DurationHuman::new(default_ms),
-                max: DurationHuman::new(maximal_ms),
+                min: DurationHuman::new(minimal_nanos),
+                default: DurationHuman::new(default_nanos),
+                max: DurationHuman::new(maximal_nanos),
             })
         }
     }
 
-    /// To be used as a validate_parser for clap
+    /// To be used as a `validate_parser` for clap
     ///
     /// ```compile_error
     ///  validate_parser = {|lifetime: &str|duration_range.parse_and_validate(lifetime)}
@@ -57,10 +61,10 @@ impl DurationHumanValidator {
     /// Will return `Err` if duration is not within the given range
     /// permission to read it.
     pub fn parse_and_validate(&self, duration: &str) -> Result<DurationHuman, DurationError> {
-        let duration_in_ms = DurationHuman::try_from(duration)?;
+        let duration_in_nanos = DurationHuman::try_from(duration)?;
 
-        if self.contains(&duration_in_ms) {
-            Ok(duration_in_ms)
+        if self.contains(&duration_in_nanos) {
+            Ok(duration_in_nanos)
         } else {
             Err(DurationError::DurationMustLieBetween {
                 range: self.to_string(),

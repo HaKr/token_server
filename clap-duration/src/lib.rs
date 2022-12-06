@@ -26,6 +26,32 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{braced, parse::Parse, parse_macro_input, Ident, Token};
 
+/// macro
+///
+/// ## Example
+/// ```rust
+/// use clap::Parser;
+/// use clap_duration::assign_duration_range_validator;
+/// use duration_human::{DurationHuman, DurationHumanValidator};
+///
+/// assign_duration_range_validator!( LIFETIME_RANGE = {default: 333s, min: 1min, max: 60day});
+///
+/// #[derive(Parser)]
+/// struct ServerOptions {
+///    
+///     #[arg(
+///         long,
+///         help = format!("What lifetime will it have, between {}", LIFETIME_RANGE),
+///         default_value = LIFETIME_RANGE.default,
+///         value_parser = {|lifetime: &str|LIFETIME_RANGE.parse_and_validate(lifetime)}
+///     )]
+///     lifetime: DurationHuman,
+/// }
+///
+///  let opts = ServerOptions::parse();
+///  assert_eq!(format!("{:#}",opts.lifetime), format!("5min 33s"));
+///  assert_eq!(opts.lifetime.to_string(), "333s".to_string());
+// ```
 #[proc_macro]
 pub fn assign_duration_range_validator(input: TokenStream) -> TokenStream {
     let assignment = parse_macro_input!(input as DurationRangeAssignment);
@@ -51,7 +77,7 @@ pub fn duration_range_validator(input: TokenStream) -> TokenStream {
     })
 }
 
-/// macro for use as value_parse parameter in a clap arg attribute
+/// macro for use as `value_parse` parameter in a clap arg attribute
 ///
 /// ## Example
 /// ```rust

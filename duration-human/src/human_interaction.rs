@@ -10,17 +10,6 @@ use crate::{DurationError, DurationHumanValidator};
 
 type StdDuration = std::time::Duration;
 
-pub const MICRO_SEC: u64 = 1_000;
-pub const MILLI_SEC: u64 = 1_000 * MICRO_SEC;
-pub(crate) const SEC: u64 = 1_000 * MILLI_SEC;
-const MINUTE: u64 = 60 * SEC;
-const HOUR: u64 = 60 * MINUTE;
-const DAY: u64 = 24 * HOUR;
-const WEEK: u64 = 7 * DAY;
-const MONTH: u64 = 30 * DAY;
-const YEAR: u64 = 365 * DAY;
-const CENTURY: u64 = 100 * YEAR;
-
 /// Define a Duration in human readable form
 ///
 /// ## Examples
@@ -62,8 +51,19 @@ pub struct DurationHuman {
 }
 
 impl DurationHuman {
-    pub const ONE_SECOND: Self = Self::new(SEC);
-    pub const ONE_MILLISECOND: Self = Self::new(MILLI_SEC);
+    pub const MICRO_SEC: u64 = 1_000;
+    pub const MILLI_SEC: u64 = 1_000 * Self::MICRO_SEC;
+    pub const SEC: u64 = 1_000 * Self::MILLI_SEC;
+    const MINUTE: u64 = 60 * Self::SEC;
+    const HOUR: u64 = 60 * Self::MINUTE;
+    const DAY: u64 = 24 * Self::HOUR;
+    const WEEK: u64 = 7 * Self::DAY;
+    const MONTH: u64 = 30 * Self::DAY;
+    const YEAR: u64 = 365 * Self::DAY;
+    const CENTURY: u64 = 100 * Self::YEAR;
+
+    pub const ONE_SECOND: Self = Self::new(Self::SEC);
+    pub const ONE_MILLISECOND: Self = Self::new(Self::MILLI_SEC);
 
     #[must_use]
     pub const fn new(nanos: u64) -> Self {
@@ -72,6 +72,10 @@ impl DurationHuman {
         }
     }
 
+    /// Create a new duration from a human redable string
+    ///
+    /// ## Errors
+    /// `DurationError` when the parsing fails
     pub fn parse(human_readable: &str) -> Result<Self, DurationError> {
         Self::try_from(human_readable)
     }
@@ -86,7 +90,7 @@ impl Default for DurationHuman {
     /// Defaults to a 1min duration
     fn default() -> Self {
         Self {
-            inner: StdDuration::from_millis(MINUTE),
+            inner: StdDuration::from_millis(Self::MINUTE),
         }
     }
 }
@@ -104,7 +108,7 @@ impl Parse for DurationHuman {
 impl Add<Instant> for DurationHuman {
     type Output = Instant;
 
-    /// Create a new std::time::Instant by adding one to this duration
+    /// Create a new `std::time::Instant` by adding one to this duration
     ///
     /// ## Example
     /// ```
@@ -129,7 +133,7 @@ impl From<StdDuration> for DurationHuman {
 }
 
 impl From<&DurationHuman> for StdDuration {
-    /// For non human interaction features, just unwrap the std::time::Duration
+    /// For non human interaction features, just unwrap the `std::time::Duration`
     ///
     /// ## Example
     /// ```
@@ -169,23 +173,23 @@ impl TryFrom<&str> for DurationHuman {
                 if value == 0 {
                     Ok(0)
                 } else {
+                    #[allow(clippy::unwrap_used)] // somehow the RE has four groups
                     let unit = group
                         .get(2)
                         .or_else(|| group.get(3).or_else(|| group.get(4)))
                         .unwrap();
 
                     match unit.as_str() {
-                        "centuries" => Ok(value * CENTURY),
-                        "century" => Ok(value * CENTURY),
-                        "year" => Ok(value * YEAR),
-                        "month" => Ok(value * MONTH),
-                        "week" => Ok(value * WEEK),
-                        "day" => Ok(value * DAY),
-                        "h" => Ok(value * HOUR),
-                        "min" => Ok(value * MINUTE),
-                        "s" => Ok(value * SEC),
-                        "ms" => Ok(value * MILLI_SEC),
-                        "μs" => Ok(value * MICRO_SEC),
+                        "century" | "centuries" => Ok(value * Self::CENTURY),
+                        "year" => Ok(value * Self::YEAR),
+                        "month" => Ok(value * Self::MONTH),
+                        "week" => Ok(value * Self::WEEK),
+                        "day" => Ok(value * Self::DAY),
+                        "h" => Ok(value * Self::HOUR),
+                        "min" => Ok(value * Self::MINUTE),
+                        "s" => Ok(value * Self::SEC),
+                        "ms" => Ok(value * Self::MILLI_SEC),
+                        "μs" => Ok(value * Self::MICRO_SEC),
                         "ns" => Ok(value),
 
                         sym => Err(DurationError::UnsupportedSymbol {
@@ -232,16 +236,16 @@ impl Display for DurationHuman {
         let mut nanos: u64 = self.into();
         if f.alternate() {
             let durations: Vec<String> = [
-                (CENTURY, " century", " centuries"),
-                (YEAR, " year", " years"),
-                (MONTH, " month", " months"),
-                (WEEK, " week", " weeks"),
-                (DAY, " day", " days"),
-                (HOUR, "h", "h"),
-                (MINUTE, "min", "min"),
-                (SEC, "s", "s"),
-                (MILLI_SEC, "ms", "ms"),
-                (MICRO_SEC, "μs", "μs"),
+                (Self::CENTURY, " century", " centuries"),
+                (Self::YEAR, " year", " years"),
+                (Self::MONTH, " month", " months"),
+                (Self::WEEK, " week", " weeks"),
+                (Self::DAY, " day", " days"),
+                (Self::HOUR, "h", "h"),
+                (Self::MINUTE, "min", "min"),
+                (Self::SEC, "s", "s"),
+                (Self::MILLI_SEC, "ms", "ms"),
+                (Self::MICRO_SEC, "μs", "μs"),
                 (1, "ns", "ns"),
             ]
             .iter()
@@ -263,46 +267,58 @@ impl Display for DurationHuman {
         } else {
             f.write_str(
                 match nanos {
-                    _ if nanos < MICRO_SEC || nanos % MICRO_SEC != 0 => {
+                    _ if nanos < Self::MICRO_SEC || nanos % Self::MICRO_SEC != 0 => {
                         format!("{}ns", nanos)
                     }
-                    _ if nanos < MILLI_SEC || nanos % MILLI_SEC != 0 => {
-                        format!("{}μs", nanos / MICRO_SEC)
+                    _ if nanos < Self::MILLI_SEC || nanos % Self::MILLI_SEC != 0 => {
+                        format!("{}μs", nanos / Self::MICRO_SEC)
                     }
-                    _ if nanos < SEC || nanos % SEC != 0 => format!("{}ms", nanos / MILLI_SEC),
-                    _ if nanos < MINUTE || nanos % MINUTE != 0 => format!("{}s", nanos / SEC),
-                    _ if nanos < HOUR || nanos % HOUR != 0 => format!("{}min", nanos / MINUTE),
-                    _ if nanos < DAY || nanos % DAY != 0 => format!("{}h", nanos / HOUR),
-                    _ if nanos < WEEK || nanos % WEEK != 0 => {
+                    _ if nanos < Self::SEC || nanos % Self::SEC != 0 => {
+                        format!("{}ms", nanos / Self::MILLI_SEC)
+                    }
+                    _ if nanos < Self::MINUTE || nanos % Self::MINUTE != 0 => {
+                        format!("{}s", nanos / Self::SEC)
+                    }
+                    _ if nanos < Self::HOUR || nanos % Self::HOUR != 0 => {
+                        format!("{}min", nanos / Self::MINUTE)
+                    }
+                    _ if nanos < Self::DAY || nanos % Self::DAY != 0 => {
+                        format!("{}h", nanos / Self::HOUR)
+                    }
+                    _ if nanos < Self::WEEK || nanos % Self::WEEK != 0 => {
                         format!(
                             "{} day{}",
-                            nanos / DAY,
-                            if nanos / DAY > 1 { "s" } else { "" }
+                            nanos / Self::DAY,
+                            if nanos / Self::DAY > 1 { "s" } else { "" }
                         )
                     }
-                    _ if nanos < MONTH || nanos % MONTH != 0 => {
+                    _ if nanos < Self::MONTH || nanos % Self::MONTH != 0 => {
                         format!(
                             "{} week{}",
-                            nanos / WEEK,
-                            if nanos / WEEK > 1 { "s" } else { "" }
+                            nanos / Self::WEEK,
+                            if nanos / Self::WEEK > 1 { "s" } else { "" }
                         )
                     }
-                    _ if nanos < YEAR || nanos % YEAR != 0 => format!(
+                    _ if nanos < Self::YEAR || nanos % Self::YEAR != 0 => format!(
                         "{} month{}",
-                        nanos / MONTH,
-                        if nanos / YEAR > 1 { "s" } else { "" }
+                        nanos / Self::MONTH,
+                        if nanos / Self::YEAR > 1 { "s" } else { "" }
                     ),
-                    _ if nanos < CENTURY || nanos % CENTURY != 0 => {
+                    _ if nanos < Self::CENTURY || nanos % Self::CENTURY != 0 => {
                         format!(
                             "{} year{}",
-                            nanos / YEAR,
-                            if nanos / YEAR > 1 { "s" } else { "" }
+                            nanos / Self::YEAR,
+                            if nanos / Self::YEAR > 1 { "s" } else { "" }
                         )
                     }
                     _ => format!(
                         "{} centur{}",
-                        nanos / CENTURY,
-                        if nanos / CENTURY > 1 { "ies" } else { "y" }
+                        nanos / Self::CENTURY,
+                        if nanos / Self::CENTURY > 1 {
+                            "ies"
+                        } else {
+                            "y"
+                        }
                     ),
                 }
                 .as_str(),

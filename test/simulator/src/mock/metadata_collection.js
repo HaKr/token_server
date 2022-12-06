@@ -8,22 +8,22 @@ export const metadata_collection = [
 
     {
         lastName: "Adams",
-        answer: "42"
+        answer: 42
     },
 
     {
         year: "2022",
-        week: "47"
+        week: 47
     },
 
     {
         year: "2021",
-        week: "52"
+        week: 52
     },
 
     {
         year: "2020",
-        week: "11",
-        covid_19: "true"
+        week: 11,
+        covid_19: true
     }
 ]

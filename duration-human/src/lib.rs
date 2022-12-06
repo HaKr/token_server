@@ -1,8 +1,8 @@
 mod errors;
 pub use errors::*;
 
-mod duration;
-pub use duration::*;
+mod human_interaction;
+pub use human_interaction::*;
 
-mod validator;
-pub use validator::*;
+mod validation;
+pub use validation::*;

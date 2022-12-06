@@ -1,8 +1,9 @@
 use std::{collections::HashMap, fmt::Display, time::Instant};
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 
-pub type MetaData = HashMap<String, String>;
+pub type MetaData = JsonValue;
 pub type Guid = String;
 pub type TokenStore = HashMap<Guid, (Instant, MetaData)>;
 

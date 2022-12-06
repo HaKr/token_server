@@ -28,6 +28,7 @@ struct ServerOptions {
     #[arg(short, long, default_value_t = 3666, value_parser = clap::value_parser!(u16).range(3000..) ) ]
     port: u16,
 
+    /// What frequency to remove expired tokens
     #[arg(
         long,
         help = format!("What frequency to remove expired tokens, between {}", PURGE_INTERVAL_RANGE),
@@ -36,6 +37,7 @@ struct ServerOptions {
     )]
     purge_interval: DurationHuman,
 
+    /// How long does a token remain valid
     #[arg(
         long,
         help = format!("How long does a token remain valid, between {}", TOKEN_LIFETIME_RANGE),

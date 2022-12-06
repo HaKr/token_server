@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::RwLock, time::Instant};
+use std::{sync::RwLock, time::Instant};
 
 use chrono::{DateTime, Utc};
 use duration_human::DurationHuman;
@@ -21,7 +21,7 @@ pub struct TokenServerState {
 #[derive(Serialize)]
 struct DumpEntry<'de> {
     expires: String,
-    meta: &'de HashMap<String, String>,
+    meta: &'de MetaData,
 }
 
 impl Default for TokenServerState {
@@ -73,8 +73,12 @@ impl TokenServerState {
         )?;
 
         if let Some(metadata_update) = metadata_update {
-            for (k, v) in &metadata_update {
-                metadata.insert(k.to_string(), v.to_string());
+            if let Some(existing) = metadata.as_object_mut() {
+                if let Some(map) = metadata_update.as_object() {
+                    for (k, v) in map {
+                        existing.insert(k.to_string(), v.clone());
+                    }
+                }
             }
         }
 

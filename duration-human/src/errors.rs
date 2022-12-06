@@ -19,10 +19,10 @@ pub enum DurationError {
     #[error("'{sym}' is not supported as a duration symbol")]
     UnsupportedSymbol { sym: String },
 
-    #[error("EInvalid range: should be {minimal} <=  {maximal}")]
+    #[error("Invalid range: should be {minimal} <=  {maximal}")]
     DurationValidationMinMustBeLessOrEqualMax { minimal: String, maximal: String },
 
-    #[error("EInvalid range: should be {minimal} <= {default} <= {maximal}")]
+    #[error("Invalid range: should be {minimal} <= {default} <= {maximal}")]
     DurationValidationMustBeOrdered {
         minimal: String,
         default: String,
