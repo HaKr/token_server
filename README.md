@@ -6,7 +6,7 @@ web or REST servers.
 
 The token server should run in a protected environment, that can only be accessed
 from the local network.
-A web server collects some user data which will be used in all subsequent
+A web server collects some metadata which will be used in all subsequent
 access to the web server. The web server requests a new token from
 the token server and includes that in the response to the user. On the next
 request from the user to the web server, the web server retrieves the token
@@ -67,14 +67,14 @@ Optional arguments:
         Returns: 202 Accepted
 
 ### Metadata
-Both the POST and PUT request accept a JSON body, which must be a single object of key/value pairs.
-The value may only be of type string.
+Both the POST and PUT request accept a JSON body, which must contain a "meta" key,
+which in turn must be a single JSON object.
 
     {
         "meta": {
             "name": "My user",
-            "year": "2022",
-            "period": "11"
+            "year": 2022,
+            "period": 11
         } 
     }
 
@@ -87,8 +87,8 @@ The value may only be of type string.
             "token": "XXXX",
             "meta": {
                 "name": "My user",
-                "year": "2022",
-                "period": "11"
+                "year": 2022,
+                "period": 11
             }
         } 
     }
