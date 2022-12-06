@@ -69,7 +69,7 @@ Optional arguments:
 ### Metadata
 Both the POST and PUT request accept a JSON body, which must contain a "meta" key,
 which in turn must be a single JSON object.
-
+```json
     {
         "meta": {
             "name": "My user",
@@ -77,11 +77,12 @@ which in turn must be a single JSON object.
             "period": 11
         } 
     }
-
+```
 
 ### PUT result
 
   * on success:
+```json
     {
         "Ok": {
             "token": "XXXX",
@@ -92,8 +93,10 @@ which in turn must be a single JSON object.
             }
         } 
     }
-
+```
   * on error:
+  ```json
     {
         Err: InvalidToken
     }
+```
