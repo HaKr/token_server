@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::Add, time::Instant};
+use std::{ops::Add, time::Instant};
 
 use lazy_regex::regex;
 use syn::{
@@ -54,13 +54,13 @@ impl DurationHuman {
     pub const MICRO_SEC: u64 = 1_000;
     pub const MILLI_SEC: u64 = 1_000 * Self::MICRO_SEC;
     pub const SEC: u64 = 1_000 * Self::MILLI_SEC;
-    const MINUTE: u64 = 60 * Self::SEC;
-    const HOUR: u64 = 60 * Self::MINUTE;
-    const DAY: u64 = 24 * Self::HOUR;
-    const WEEK: u64 = 7 * Self::DAY;
-    const MONTH: u64 = 30 * Self::DAY;
-    const YEAR: u64 = 365 * Self::DAY;
-    const CENTURY: u64 = 100 * Self::YEAR;
+    pub const MINUTE: u64 = 60 * Self::SEC;
+    pub const HOUR: u64 = 60 * Self::MINUTE;
+    pub const DAY: u64 = 24 * Self::HOUR;
+    pub const WEEK: u64 = 7 * Self::DAY;
+    pub const MONTH: u64 = 30 * Self::DAY;
+    pub const YEAR: u64 = 365 * Self::DAY;
+    pub const CENTURY: u64 = 100 * Self::YEAR;
 
     pub const ONE_SECOND: Self = Self::new(Self::SEC);
     pub const ONE_MILLISECOND: Self = Self::new(Self::MILLI_SEC);
@@ -149,8 +149,8 @@ impl From<&DurationHuman> for StdDuration {
 }
 
 impl From<u64> for DurationHuman {
-    fn from(ms: u64) -> Self {
-        Self::new(ms)
+    fn from(nanos: u64) -> Self {
+        Self::new(nanos)
     }
 }
 
@@ -198,7 +198,7 @@ impl TryFrom<&str> for DurationHuman {
                     }
                 }
             })
-            .fold(0, |ms, r| {
+            .fold(0, |nanos, r| {
                 let d = r.map_or_else(
                     |err| {
                         unexpected = Some(err);
@@ -206,7 +206,7 @@ impl TryFrom<&str> for DurationHuman {
                     },
                     |d| d,
                 );
-                ms + d
+                nanos + d
             });
 
         unexpected.map_or(
@@ -229,141 +229,4 @@ impl From<&DurationHuman> for u64 {
     fn from(duration: &DurationHuman) -> Self {
         duration.inner.as_nanos() as Self
     }
-}
-
-impl Display for DurationHuman {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut nanos: u64 = self.into();
-        if f.alternate() {
-            let durations: Vec<String> = [
-                (Self::CENTURY, " century", " centuries"),
-                (Self::YEAR, " year", " years"),
-                (Self::MONTH, " month", " months"),
-                (Self::WEEK, " week", " weeks"),
-                (Self::DAY, " day", " days"),
-                (Self::HOUR, "h", "h"),
-                (Self::MINUTE, "min", "min"),
-                (Self::SEC, "s", "s"),
-                (Self::MILLI_SEC, "ms", "ms"),
-                (Self::MICRO_SEC, "μs", "μs"),
-                (1, "ns", "ns"),
-            ]
-            .iter()
-            .filter_map(|(part_ms, unit_singular, unit_plural)| {
-                let part = nanos / part_ms;
-                nanos %= part_ms;
-                if part > 0 {
-                    Some(format!(
-                        "{}{}",
-                        part,
-                        if part > 1 { unit_plural } else { unit_singular }
-                    ))
-                } else {
-                    None
-                }
-            })
-            .collect();
-            f.write_str(durations.join(" ").as_str())
-        } else {
-            f.write_str(
-                match nanos {
-                    _ if nanos < Self::MICRO_SEC || nanos % Self::MICRO_SEC != 0 => {
-                        format!("{}ns", nanos)
-                    }
-                    _ if nanos < Self::MILLI_SEC || nanos % Self::MILLI_SEC != 0 => {
-                        format!("{}μs", nanos / Self::MICRO_SEC)
-                    }
-                    _ if nanos < Self::SEC || nanos % Self::SEC != 0 => {
-                        format!("{}ms", nanos / Self::MILLI_SEC)
-                    }
-                    _ if nanos < Self::MINUTE || nanos % Self::MINUTE != 0 => {
-                        format!("{}s", nanos / Self::SEC)
-                    }
-                    _ if nanos < Self::HOUR || nanos % Self::HOUR != 0 => {
-                        format!("{}min", nanos / Self::MINUTE)
-                    }
-                    _ if nanos < Self::DAY || nanos % Self::DAY != 0 => {
-                        format!("{}h", nanos / Self::HOUR)
-                    }
-                    _ if nanos < Self::WEEK || nanos % Self::WEEK != 0 => {
-                        format!(
-                            "{} day{}",
-                            nanos / Self::DAY,
-                            if nanos / Self::DAY > 1 { "s" } else { "" }
-                        )
-                    }
-                    _ if nanos < Self::MONTH || nanos % Self::MONTH != 0 => {
-                        format!(
-                            "{} week{}",
-                            nanos / Self::WEEK,
-                            if nanos / Self::WEEK > 1 { "s" } else { "" }
-                        )
-                    }
-                    _ if nanos < Self::YEAR || nanos % Self::YEAR != 0 => format!(
-                        "{} month{}",
-                        nanos / Self::MONTH,
-                        if nanos / Self::YEAR > 1 { "s" } else { "" }
-                    ),
-                    _ if nanos < Self::CENTURY || nanos % Self::CENTURY != 0 => {
-                        format!(
-                            "{} year{}",
-                            nanos / Self::YEAR,
-                            if nanos / Self::YEAR > 1 { "s" } else { "" }
-                        )
-                    }
-                    _ => format!(
-                        "{} centur{}",
-                        nanos / Self::CENTURY,
-                        if nanos / Self::CENTURY > 1 {
-                            "ies"
-                        } else {
-                            "y"
-                        }
-                    ),
-                }
-                .as_str(),
-            )
-        }
-    }
-}
-
-#[test]
-fn one_sec() {
-    let duration = DurationHuman::try_from("1s").unwrap();
-
-    dbg!(format!("{}", duration));
-    dbg!(format!("{:#}", duration));
-}
-
-#[test]
-fn roundtrip() {
-    let duration = format!(
-        "{:#}",
-        DurationHuman::try_from("It will take 2years 1 week 3days 5h 6min and 10s.").unwrap()
-    );
-    assert_eq!(duration, format!("2 years 1 week 3 days 5h 6min 10s"));
-
-    let duration = format!("{:#}", DurationHuman::try_from(duration.as_str()).unwrap());
-    assert_eq!(duration, format!("2 years 1 week 3 days 5h 6min 10s"));
-}
-
-#[test]
-fn beware_of_unrecognised() -> Result<(), DurationError> {
-    let duration = DurationHuman::try_from("It will take 2years 1 week 3 dagen 5h 6min and 10s.")?;
-    assert_eq!(
-        format!("{:#}", duration),
-        format!("2 years 1 week 5h 6min 10s")
-    );
-    Ok(())
-}
-
-#[test]
-fn max() -> Result<(), DurationError> {
-    let duration = DurationHuman::try_from(
-        "5 centuries 84 years 11 months 1 week 6 days 23h 34min 33s 709ms 551μs 615ns",
-    )?;
-    let pretty = format!("{:#}", duration);
-    let duration_from_pretty = DurationHuman::try_from(pretty.as_str())?;
-    assert_eq!(duration, duration_from_pretty);
-    Ok(())
 }
