@@ -1,14 +1,24 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use crate::{DurationHuman, DurationHumanValidator};
 
 impl Display for DurationHumanValidator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!(
-            "{min} and {max}",
+            "must be between {min} and {max}",
             min = self.min,
             max = self.max
         ))
+    }
+}
+
+impl Debug for DurationHumanValidator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DurationHumanValidator")
+            .field("min", &self.min.to_string())
+            .field("default", &self.default.to_string())
+            .field("max", &self.max.to_string())
+            .finish()
     }
 }
 

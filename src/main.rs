@@ -31,7 +31,7 @@ struct ServerOptions {
     /// What frequency to remove expired tokens
     #[arg(
         long,
-        help = format!("What frequency to remove expired tokens, between {}", PURGE_INTERVAL_RANGE),
+        help = format!("What frequency to remove expired tokens, {}", PURGE_INTERVAL_RANGE),
         default_value = PURGE_INTERVAL_RANGE.default,
         value_parser = {|interval: &str|PURGE_INTERVAL_RANGE.parse_and_validate(interval)}
     )]
@@ -40,7 +40,7 @@ struct ServerOptions {
     /// How long does a token remain valid
     #[arg(
         long,
-        help = format!("How long does a token remain valid, between {}", TOKEN_LIFETIME_RANGE),
+        help = format!("How long does a token remain valid, {}", TOKEN_LIFETIME_RANGE),
         default_value = TOKEN_LIFETIME_RANGE.default,
         value_parser = {|lifetime: &str|TOKEN_LIFETIME_RANGE.parse_and_validate(lifetime)}
     )]
