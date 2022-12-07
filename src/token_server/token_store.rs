@@ -64,7 +64,7 @@ impl TokenStore {
         let mut tokens = self.tokens.write().map_err(RwLockNotAcquired::from)?;
         let now = Instant::now();
 
-        let mut metadata = tokens.remove(tokenkey).map_or(
+        let mut meta = tokens.remove(tokenkey).map_or(
             Err(TokenUpdateFailed::InvalidToken),
             |(expires, metadata)| {
                 if expires > now {
@@ -76,7 +76,7 @@ impl TokenStore {
         )?;
 
         if let Some(metadata_update) = metadata_update {
-            if let Some(existing) = metadata.as_object_mut() {
+            if let Some(existing) = meta.as_object_mut() {
                 if let Some(map) = metadata_update.as_object() {
                     for (k, v) in map {
                         existing.insert(k.to_string(), v.clone());
@@ -85,15 +85,11 @@ impl TokenStore {
             }
         }
 
-        let (tokenkey, expires) = self.new_token();
+        let (token, expires) = self.new_token();
 
-        let meta = metadata.clone();
-        tokens.insert(tokenkey.clone(), (expires, metadata));
+        tokens.insert(token.clone(), (expires, meta.clone()));
 
-        Ok(UpdateResponsePayload {
-            token: tokenkey,
-            meta,
-        })
+        Ok(UpdateResponsePayload { token, meta })
     }
 
     pub fn remove_token(&self, token: &String) -> Result<(), RwLockNotAcquired> {
@@ -128,13 +124,12 @@ impl TokenStore {
 
                     // let's assume no wrap occurs, otherwise funny debug log
                     #[allow(clippy::cast_possible_wrap)]
-                    let expires: DateTime<Utc> =
-                        self.started_at_utc + chrono::Duration::seconds(duration.as_secs() as i64);
+                    let expires = (self.started_at_utc
+                        + chrono::Duration::seconds(duration.as_secs() as i64))
+                    .format("%Y-%m-%d %H:%M:%S")
+                    .to_string();
 
-                    DumpEntry {
-                        expires: expires.format("%Y-%m-%d %H:%M:%S").to_string(),
-                        meta,
-                    }
+                    DumpEntry { expires, meta }
                 })
                 .collect::<Vec<DumpEntry>>();
 
