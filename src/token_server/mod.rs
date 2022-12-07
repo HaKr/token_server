@@ -1,6 +1,8 @@
 pub mod api;
 pub mod routes;
 
+mod purging;
+
 mod errors;
 
 pub use errors::*;

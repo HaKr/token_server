@@ -3,43 +3,60 @@ use std::sync::Arc;
 
 use axum::{
     extract::{self, State},
+    response::{IntoResponse, Response},
     Json,
 };
 use http::StatusCode;
+use tracing::error;
 
 use super::{
-    api::{CreatePayload, RemovePayload, UpdatePayload, UpdateResponsePayload},
-    TokenError, TokenServerState,
+    api::{CreatePayload, RemovePayload, UpdatePayload},
+    RwLockNotAcquired, TokenServerState, TokenUpdateFailed,
 };
 
 pub async fn create_token(
     extract::State(state): State<Arc<TokenServerState>>,
     extract::Json(metadata): extract::Json<CreatePayload>,
 ) -> (StatusCode, String) {
-    state.create_token(metadata.meta).map_or_else(
-        |e| (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", e)),
-        |token| (StatusCode::OK, token),
-    )
+    state
+        .create_token(metadata.meta)
+        .map_or_else(internal_server_error, |token| (StatusCode::OK, token))
 }
 
 pub async fn update_token(
     State(state): State<Arc<TokenServerState>>,
     extract::Json(payload): extract::Json<UpdatePayload>,
-) -> Json<Result<UpdateResponsePayload, TokenError>> {
-    Json(state.update_token(&payload.token, payload.meta))
+) -> Response {
+    let res = state.update_token(&payload.token, payload.meta);
+
+    match res {
+        Err(TokenUpdateFailed::InternalServerError(err)) => {
+            internal_server_error(err).into_response()
+        }
+        _ => Json(res).into_response(),
+    }
 }
 
 pub async fn remove_token(
     State(state): State<Arc<TokenServerState>>,
     extract::Json(payload): extract::Json<RemovePayload>,
-) -> StatusCode {
-    let _ = state.remove_token(&payload.token);
+) -> (StatusCode, String) {
+    state
+        .remove_token(&payload.token)
+        .map_or_else(internal_server_error, |()| {
+            (StatusCode::ACCEPTED, String::new())
+        })
+}
+
+pub async fn dump_meta(State(state): State<Arc<TokenServerState>>) -> StatusCode {
+    state.dump_meta();
 
     StatusCode::ACCEPTED
 }
 
-pub async fn dump_meta(State(state): State<Arc<TokenServerState>>) -> StatusCode {
-    let _ = state.dump_meta();
-
-    StatusCode::ACCEPTED
+#[inline]
+fn internal_server_error(e: RwLockNotAcquired) -> (StatusCode, String) {
+    let msg = format!("{}", e);
+    error!(msg);
+    (StatusCode::INTERNAL_SERVER_ERROR, msg)
 }

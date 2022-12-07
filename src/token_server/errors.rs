@@ -9,21 +9,18 @@ use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Error, Debug, Serialize)]
-pub enum TokenError {
+pub enum TokenUpdateFailed {
     #[error("InvalidToken")]
     InvalidToken,
 
     #[error("InternalServerError")]
-    InternalServerError {
-        #[from]
-        source: RwLockNotAcquired,
-    },
+    InternalServerError(#[from] RwLockNotAcquired),
 
     #[error("Deserialize failed")]
     MustNeverOccur,
 }
 
-#[derive(Debug, Error, Serialize)]
+#[derive(Debug, Error, Serialize, Copy, Clone)]
 pub struct RwLockNotAcquired;
 
 impl Display for RwLockNotAcquired {
@@ -32,7 +29,6 @@ impl Display for RwLockNotAcquired {
     }
 }
 
-// thiserror::from cannot accept anonymous lifetime specifier
 impl<P> From<PoisonError<P>> for RwLockNotAcquired {
     fn from(_: PoisonError<P>) -> Self {
         Self {}
@@ -40,7 +36,7 @@ impl<P> From<PoisonError<P>> for RwLockNotAcquired {
 }
 
 // serde_josn::Error is not Serializable, as required by the #[from] attribute
-impl From<serde_json::Error> for TokenError {
+impl From<serde_json::Error> for TokenUpdateFailed {
     fn from(_: serde_json::Error) -> Self {
         Self::MustNeverOccur
     }
