@@ -12,14 +12,14 @@ use super::{
     RwLockNotAcquired, TokenUpdateFailed,
 };
 
-pub struct TokenServerState {
-    tokens: RwLock<TokenStore>,
+pub struct TokenStore {
+    tokens: RwLock<TokensByID>,
     started_at_instant: Instant,
     started_at_utc: DateTime<Utc>,
     token_lifetime: DurationHuman,
 }
 
-type TokenStore = HashMap<Guid, (Instant, MetaData)>;
+type TokensByID = HashMap<Guid, (Instant, MetaData)>;
 
 #[derive(Serialize)]
 struct DumpEntry<'de> {
@@ -27,7 +27,7 @@ struct DumpEntry<'de> {
     meta: &'de MetaData,
 }
 
-impl Default for TokenServerState {
+impl Default for TokenStore {
     fn default() -> Self {
         Self {
             tokens: RwLock::default(),
@@ -38,7 +38,7 @@ impl Default for TokenServerState {
     }
 }
 
-impl TokenServerState {
+impl TokenStore {
     pub const fn with_token_lifetime(mut self, lifetime: DurationHuman) -> Self {
         self.token_lifetime = lifetime;
 
@@ -145,7 +145,7 @@ impl TokenServerState {
     }
 }
 
-impl TokenServerState {
+impl TokenStore {
     #[inline]
     fn new_token(&self) -> (String, Instant) {
         (

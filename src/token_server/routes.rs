@@ -11,11 +11,11 @@ use tracing::error;
 
 use super::{
     api::{CreatePayload, RemovePayload, UpdatePayload},
-    RwLockNotAcquired, TokenServerState, TokenUpdateFailed,
+    RwLockNotAcquired, TokenStore, TokenUpdateFailed,
 };
 
 pub async fn create_token(
-    extract::State(state): State<Arc<TokenServerState>>,
+    extract::State(state): State<Arc<TokenStore>>,
     extract::Json(metadata): extract::Json<CreatePayload>,
 ) -> (StatusCode, String) {
     state
@@ -24,7 +24,7 @@ pub async fn create_token(
 }
 
 pub async fn update_token(
-    State(state): State<Arc<TokenServerState>>,
+    State(state): State<Arc<TokenStore>>,
     extract::Json(payload): extract::Json<UpdatePayload>,
 ) -> Response {
     let res = state.update_token(&payload.token, payload.meta);
@@ -38,7 +38,7 @@ pub async fn update_token(
 }
 
 pub async fn remove_token(
-    State(state): State<Arc<TokenServerState>>,
+    State(state): State<Arc<TokenStore>>,
     extract::Json(payload): extract::Json<RemovePayload>,
 ) -> (StatusCode, String) {
     state
@@ -48,7 +48,7 @@ pub async fn remove_token(
         })
 }
 
-pub async fn dump_meta(State(state): State<Arc<TokenServerState>>) -> StatusCode {
+pub async fn dump_meta(State(state): State<Arc<TokenStore>>) -> StatusCode {
     state.dump_meta();
 
     StatusCode::ACCEPTED

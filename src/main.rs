@@ -13,7 +13,7 @@ use tower_http::trace::TraceLayer;
 use tracing::{debug, enabled, error, info, trace, warn, Level};
 
 mod token_server;
-use token_server::{routes, TokenServerState};
+use token_server::{routes, TokenStore};
 
 assign_duration_range_validator!( TOKEN_LIFETIME_RANGE = {default: 2h, min: 10min, max: 60day});
 assign_duration_range_validator!( PURGE_INTERVAL_RANGE = {min: 1500ms, default: 1min, max: 90min});
@@ -56,7 +56,7 @@ async fn main() -> Result<(), hyper::Error> {
 
     let log_debug_enabled = enabled!(Level::DEBUG);
     let addr = SocketAddr::from(([127, 0, 0, 1], opts.port));
-    let state = Arc::new(TokenServerState::default().with_token_lifetime(opts.token_lifetime));
+    let state = Arc::new(TokenStore::default().with_token_lifetime(opts.token_lifetime));
     let state_during_purge = state.clone();
 
     tokio::spawn(async move {
@@ -65,9 +65,9 @@ async fn main() -> Result<(), hyper::Error> {
             match state_during_purge.clone().remove_expired_tokens() {
                 Ok(purged) => {
                     if log_debug_enabled && purged.purged > 0 {
-                        debug!("PURGED: {}", purged);
+                        debug!("{}", purged);
                     } else {
-                        trace!("PURGED: {}", purged);
+                        trace!("{}", purged);
                     }
                 }
                 Err(e) => error!("PURGE failed: {}", e),

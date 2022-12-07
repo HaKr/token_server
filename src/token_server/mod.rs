@@ -7,5 +7,5 @@ mod errors;
 
 pub use errors::*;
 
-mod token_server_state;
-pub use token_server_state::*;
+mod token_store;
+pub use token_store::*;
