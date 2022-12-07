@@ -6,11 +6,12 @@ use axum::{
 };
 use clap::Parser;
 use clap_duration::assign_duration_range_validator;
-use duration_human::{DurationHuman, DurationHumanValidator};
 use tokio::time::sleep;
 use tower::ServiceBuilder;
 use tower_http::trace::TraceLayer;
 use tracing::{debug, enabled, error, info, trace, warn, Level};
+
+use duration_human::{DurationHuman, DurationHumanValidator};
 
 mod token_server;
 use token_server::{routes, TokenStore};
@@ -56,13 +57,13 @@ async fn main() -> Result<(), hyper::Error> {
 
     let log_debug_enabled = enabled!(Level::DEBUG);
     let addr = SocketAddr::from(([127, 0, 0, 1], opts.port));
-    let state = Arc::new(TokenStore::default().with_token_lifetime(opts.token_lifetime));
-    let state_during_purge = state.clone();
+    let token_store = Arc::new(TokenStore::default().with_token_lifetime(opts.token_lifetime));
+    let token_store_during_purge = token_store.clone();
 
     tokio::spawn(async move {
         loop {
             sleep((&opts.purge_interval).into()).await;
-            match state_during_purge.clone().remove_expired_tokens() {
+            match token_store_during_purge.clone().remove_expired_tokens() {
                 Ok(purged) => {
                     if log_debug_enabled && purged.purged > 0 {
                         debug!("{}", purged);
@@ -90,7 +91,7 @@ async fn main() -> Result<(), hyper::Error> {
         .serve(
             token_server_routes
                 .layer(ServiceBuilder::new().layer(TraceLayer::new_for_http()))
-                .with_state(state)
+                .with_state(token_store)
                 .into_make_service(),
         )
         .await?;
