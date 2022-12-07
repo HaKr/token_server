@@ -3,7 +3,7 @@
 // macro expansion, thus suppress it for this entire file
 #![allow(clippy::use_self)]
 
-use std::sync::PoisonError;
+use std::{fmt::Display, sync::PoisonError};
 
 use serde::Serialize;
 use thiserror::Error;
@@ -14,16 +14,28 @@ pub enum TokenError {
     InvalidToken,
 
     #[error("InternalServerError")]
-    InternalServerError,
+    InternalServerError {
+        #[from]
+        source: RwLockNotAcquired,
+    },
 
     #[error("Deserialize failed")]
     MustNeverOccur,
 }
 
+#[derive(Debug, Error, Serialize)]
+pub struct RwLockNotAcquired;
+
+impl Display for RwLockNotAcquired {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("could not acquire read/write lock")
+    }
+}
+
 // thiserror::from cannot accept anonymous lifetime specifier
-impl<P> From<PoisonError<P>> for TokenError {
+impl<P> From<PoisonError<P>> for RwLockNotAcquired {
     fn from(_: PoisonError<P>) -> Self {
-        Self::InternalServerError
+        Self {}
     }
 }
 

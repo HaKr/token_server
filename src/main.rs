@@ -54,15 +54,15 @@ async fn main() -> Result<(), hyper::Error> {
     let opts = ServerOptions::parse();
     info!("Token server listening: {}", opts);
 
+    let log_debug_enabled = enabled!(Level::DEBUG);
     let addr = SocketAddr::from(([127, 0, 0, 1], opts.port));
     let state = Arc::new(TokenServerState::default().with_token_lifetime(opts.token_lifetime));
-    let clean_state = state.clone();
-    let log_debug_enabled = enabled!(Level::DEBUG);
+    let state_during_purge = state.clone();
 
     tokio::spawn(async move {
         loop {
             sleep((&opts.purge_interval).into()).await;
-            match clean_state.clone().remove_expired_tokens() {
+            match state_during_purge.clone().remove_expired_tokens() {
                 Ok(purged) => {
                     if log_debug_enabled && purged.purged > 0 {
                         debug!("PURGED: {}", purged);

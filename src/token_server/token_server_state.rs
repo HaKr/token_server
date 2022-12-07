@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use super::{
     api::{MetaData, PurgeResult, TokenStore, UpdateResponsePayload},
-    TokenError,
+    RwLockNotAcquired, TokenError,
 };
 
 pub struct TokenServerState {
@@ -43,7 +43,7 @@ impl TokenServerState {
     }
 
     pub fn create_token(&self, metadata: MetaData) -> Result<String, TokenError> {
-        let mut tokens = self.tokens.write()?;
+        let mut tokens = self.tokens.write().map_err(RwLockNotAcquired::from)?;
 
         let (tokenkey, expires) = self.new_token();
         let token = tokenkey.clone();
@@ -58,7 +58,7 @@ impl TokenServerState {
         tokenkey: &String,
         metadata_update: Option<MetaData>,
     ) -> Result<UpdateResponsePayload, TokenError> {
-        let mut tokens = self.tokens.write()?;
+        let mut tokens = self.tokens.write().map_err(RwLockNotAcquired::from)?;
         let now = Instant::now();
 
         let mut metadata = tokens.remove(tokenkey).map_or(
@@ -94,14 +94,14 @@ impl TokenServerState {
     }
 
     pub fn remove_token(&self, token: &String) -> Result<(), TokenError> {
-        let mut tokens = self.tokens.write()?;
+        let mut tokens = self.tokens.write().map_err(RwLockNotAcquired::from)?;
 
         let _meta = tokens.remove(token);
 
         Ok(())
     }
 
-    pub fn remove_expired_tokens(&self) -> Result<PurgeResult, TokenError> {
+    pub fn remove_expired_tokens(&self) -> Result<PurgeResult, RwLockNotAcquired> {
         let mut tokens = self.tokens.write()?;
         let now = Instant::now();
 
@@ -117,7 +117,7 @@ impl TokenServerState {
     }
 
     pub fn dump_meta(&self) -> Result<(), TokenError> {
-        let tokens = self.tokens.read()?;
+        let tokens = self.tokens.read().map_err(RwLockNotAcquired::from)?;
 
         let report = tokens
             .iter()
