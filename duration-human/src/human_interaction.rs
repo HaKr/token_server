@@ -1,10 +1,6 @@
 use std::{ops::Add, time::Instant};
 
 use lazy_regex::regex;
-use syn::{
-    parse::{Parse, ParseStream},
-    LitInt,
-};
 
 use crate::{DurationError, DurationHumanValidator};
 
@@ -91,16 +87,6 @@ impl Default for DurationHuman {
     fn default() -> Self {
         Self {
             inner: StdDuration::from_millis(Self::MINUTE),
-        }
-    }
-}
-
-impl Parse for DurationHuman {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let duration_with_unit = input.parse::<LitInt>()?.to_string();
-        match TryInto::<Self>::try_into(duration_with_unit.as_str()) {
-            Ok(duration_human) => Ok(duration_human),
-            Err(e) => Err(input.error(e.to_string())),
         }
     }
 }

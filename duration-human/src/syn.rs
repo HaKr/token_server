@@ -1,22 +1,10 @@
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
-    Ident, Token,
+    Ident, LitInt, Token,
 };
 
 use crate::{DurationError, DurationHuman, DurationHumanValidator};
-
-impl Parse for DurationHumanValidator {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let parser = Punctuated::<ParsedDuration, Token![,]>::parse_separated_nonempty;
-        let durations: Vec<ParsedDuration> = parser(input)?.into_iter().collect();
-        let result = durations.try_into();
-        match result {
-            Ok(result) => Ok(result),
-            Err(err) => Err(input.error(err)),
-        }
-    }
-}
 
 struct ParsedDuration {
     arg: DurationRangeArgument,
@@ -27,6 +15,27 @@ enum DurationRangeArgument {
     Min,
     Default,
     Max,
+}
+
+impl Parse for DurationHuman {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let human_readable = input.parse::<LitInt>()?.to_string();
+
+        TryInto::<Self>::try_into(human_readable.as_str())
+            .map_err(|duration_error| input.error(duration_error.to_string()))
+    }
+}
+
+impl Parse for DurationHumanValidator {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        let parser = Punctuated::<ParsedDuration, Token![,]>::parse_separated_nonempty;
+        let durations: Vec<ParsedDuration> = parser(input)?.into_iter().collect();
+
+        TryInto::<Self>::try_into(durations).map_err(|duration_error| {
+            println!("Validator failure: {}", duration_error);
+            input.error(duration_error.to_string())
+        })
+    }
 }
 
 impl Parse for DurationRangeArgument {
@@ -48,14 +57,11 @@ impl Parse for DurationRangeArgument {
 
 impl Parse for ParsedDuration {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let name: DurationRangeArgument = input.parse()?;
+        let arg: DurationRangeArgument = input.parse()?;
         let _punc: Token![:] = input.parse()?;
-        let value: DurationHuman = input.parse()?;
+        let duration: DurationHuman = input.parse()?;
 
-        Ok(Self {
-            arg: name,
-            duration: value,
-        })
+        Ok(Self { arg, duration })
     }
 }
 
