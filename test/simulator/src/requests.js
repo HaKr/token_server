@@ -20,7 +20,7 @@ export async function create(instance, meta) {
         if (token.startsWith("ERROR")) {
             throw new Error(token.substring(7));
         } else {
-            return { created: Date.now(), token: await response.text() };
+            return { created: Date.now(), token };
         }
     } else {
         throw new Error(await response.text())
