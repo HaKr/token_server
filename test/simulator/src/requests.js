@@ -1,13 +1,14 @@
 const SERVER = "http://127.0.0.1:3666";
 const ENDPOINT_TOKEN = `${SERVER}/token`;
 const ENDPOINT_DUMP = `${SERVER}/dump`;
+const ENDPOINT_NONEXISTING = `${SERVER}/doesnotexist`;
 
 const headers = {
     "Content-Type": "application/json"
 };
 
 export async function create(instance, meta) {
-    meta.instance = instance;
+    if (meta != null) meta.instance = instance;
     const response = await fetch(`${ENDPOINT_TOKEN}?instance=${instance}`, {
         method: "POST",
         headers,
@@ -15,7 +16,12 @@ export async function create(instance, meta) {
     });
 
     if (response.ok) {
-        return { created: Date.now(), token: await response.text() };
+        let token = await response.text();
+        if (token.startsWith("ERROR")) {
+            throw new Error(token.substring(7));
+        } else {
+            return { created: Date.now(), token: await response.text() };
+        }
     } else {
         throw new Error(await response.text())
     }
@@ -69,6 +75,16 @@ export function dump(instance) {
     });
 }
 
+export async function nonexisting(instance) {
+    const response = await fetch(`${ENDPOINT_NONEXISTING}?d=${instance}`, {
+        method: "GET"
+    });
+    if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+    }
+
+}
+
 function analyse(tokenInfo, instance, label) {
     const { created, token } = tokenInfo;
     const lifetime = Math.round((Date.now() - created) / 1000);
@@ -78,6 +94,7 @@ function analyse(tokenInfo, instance, label) {
     return { token, created, format, log };
 
 }
+
 function metaInfo(meta) {
     return `${meta.lastName ? meta.lastName : meta.year ? meta.year : ""}` +
         `${(meta.lastName || meta.year) && meta.updatedAt ? ", " : ""}` +

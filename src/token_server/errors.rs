@@ -9,6 +9,15 @@ use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Error, Debug, Serialize)]
+pub enum TokenCreateFailed {
+    #[error("InvalidMetadata")]
+    MetaDataMustBeJsonObject(#[from] MetaDataMustBeJsonObject),
+
+    #[error("InternalServerError")]
+    RwLockNotAcquired(#[from] RwLockNotAcquired),
+}
+
+#[derive(Error, Debug, Serialize)]
 pub enum TokenUpdateFailed {
     #[error("InvalidToken")]
     InvalidToken,
@@ -16,8 +25,20 @@ pub enum TokenUpdateFailed {
     #[error("InternalServerError")]
     InternalServerError(#[from] RwLockNotAcquired),
 
+    #[error("InvalidMetadata")]
+    MetaDataMustBeJsonObject(#[from] MetaDataMustBeJsonObject),
+
     #[error("Deserialize failed")]
     MustNeverOccur,
+}
+
+#[derive(Debug, Error, Serialize, Copy, Clone)]
+pub struct MetaDataMustBeJsonObject;
+
+impl Display for MetaDataMustBeJsonObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("metadata must be a JSON object")
+    }
 }
 
 #[derive(Debug, Error, Serialize, Copy, Clone)]

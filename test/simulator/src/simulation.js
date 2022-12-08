@@ -2,17 +2,17 @@ import { metadata_collection } from "./mock/metadata_collection.js";
 import * as requests from "./requests.js";
 
 const instanceName = process.argv[2];
-const noSleep = process.argv[3];
+const randomSleep = process.argv[3];
 
 const DEFAULT_INSTANCE = "cli";
 
 const { instance, dump } = typeof instanceName == "string" && instanceName.length > 0 && instanceName != DEFAULT_INSTANCE ? { instance: instanceName, dump: false } : { instance: DEFAULT_INSTANCE, dump: true };
 
-const { sleep, doSleep } = typeof noSleep == "string" && noSleep.toLowerCase() == "no" ?
-    { sleep: (_) => Promise.resolve(), doSleep: false } :
+const { sleep, doSleep } = typeof randomSleep == "string" && randomSleep.toLowerCase() == "yes" ?
     {
         sleep: (secs) => new Promise((resolve) => setTimeout(resolve, secs * 1_000)), doSleep: true
-    };
+    } :
+    { sleep: (_) => Promise.resolve(), doSleep: false };
 
 console.debug(`Instance: ${instance}; dump: ${dump}; sleep? ${doSleep}`)
 

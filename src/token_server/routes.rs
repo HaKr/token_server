@@ -7,20 +7,28 @@ use axum::{
     Json,
 };
 use http::StatusCode;
+
 use tracing::error;
 
 use super::{
     api::{CreatePayload, RemovePayload, UpdatePayload},
-    RwLockNotAcquired, TokenStore, TokenUpdateFailed,
+    RwLockNotAcquired, TokenCreateFailed, TokenStore, TokenUpdateFailed,
 };
 
 pub async fn create_token(
     extract::State(state): State<Arc<TokenStore>>,
     extract::Json(metadata): extract::Json<CreatePayload>,
 ) -> (StatusCode, String) {
-    state
-        .create_token(metadata.meta)
-        .map_or_else(internal_server_error, |token| (StatusCode::OK, token))
+    state.create_token(metadata.meta).map_or_else(
+        |e| match e {
+            TokenCreateFailed::MetaDataMustBeJsonObject(e) => {
+                error!("{}", e);
+                (StatusCode::OK, format!("ERROR: {}", e))
+            }
+            TokenCreateFailed::RwLockNotAcquired(e) => internal_server_error(e),
+        },
+        |token| (StatusCode::OK, token),
+    )
 }
 
 pub async fn update_token(

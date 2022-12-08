@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::{
     api::{Guid, MetaData, UpdateResponsePayload},
     purging::PurgeResult,
-    RwLockNotAcquired, TokenUpdateFailed,
+    MetaDataMustBeJsonObject, RwLockNotAcquired, TokenCreateFailed, TokenUpdateFailed,
 };
 
 pub struct TokenStore {
@@ -45,8 +45,12 @@ impl TokenStore {
         self
     }
 
-    pub fn create_token(&self, metadata: MetaData) -> Result<String, RwLockNotAcquired> {
-        let mut tokens = self.tokens.write()?;
+    pub fn create_token(&self, metadata: MetaData) -> Result<String, TokenCreateFailed> {
+        if !metadata.is_object() {
+            Err(MetaDataMustBeJsonObject)?;
+        }
+
+        let mut tokens = self.tokens.write().map_err(RwLockNotAcquired::from)?;
 
         let (tokenkey, expires) = self.new_token();
         let token = tokenkey.clone();
