@@ -63,16 +63,20 @@ async fn main() -> Result<(), hyper::Error> {
     tokio::spawn(async move {
         loop {
             sleep((&opts.purge_interval).into()).await;
-            match token_store_during_purge.clone().remove_expired_tokens() {
-                Ok(purged) => {
-                    if log_debug_enabled && purged.purged > 0 {
-                        debug!("{}", purged);
-                    } else {
-                        trace!("{}", purged);
-                    }
-                }
-                Err(e) => error!("PURGE failed: {}", e),
-            }
+
+            token_store_during_purge
+                .clone()
+                .remove_expired_tokens()
+                .map_or_else(
+                    |err| error!("PURGE failed: {}", err),
+                    |purged| {
+                        if log_debug_enabled && purged.purged > 0 {
+                            debug!("{}", purged);
+                        } else {
+                            trace!("{}", purged);
+                        }
+                    },
+                )
         }
     });
 

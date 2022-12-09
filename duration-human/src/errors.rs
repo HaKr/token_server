@@ -16,8 +16,11 @@ pub enum DurationError {
         source: ParseIntError,
     },
 
+    #[error("Duration would become too large at {duration}, total should be less than 500 years")]
+    IntegerOverflowAt { duration: String },
+
     #[error("'{sym}' is not supported as a duration symbol")]
-    UnsupportedSymbol { sym: String },
+    UnitMatchAndRegexNotInSync { sym: String },
 
     #[error("Invalid range: should be {minimal} <=  {maximal}")]
     DurationValidationMinMustBeLessOrEqualMax { minimal: String, maximal: String },

@@ -1,12 +1,13 @@
 [package]
 name = "duration-human"
 description = "Duration wrapper to interact with humans"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 repository = "https://github.com/HaKr/token_server/tree/main/duration-human"
 license-file = "LICENSE"
 readme = "README.md"
-
+keywords = ["macro", "duration", "human-friendly", "parser"]
+categories = ["date-and-time"]
 
 [dependencies]
 thiserror = "1.0"

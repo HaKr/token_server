@@ -1,7 +1,10 @@
 use std::fmt::Display;
 
 pub struct PurgeResult {
+    /// number of tokens left after purge
     pub tokens: usize,
+
+    /// number of tokens removed during this purge
     pub purged: usize,
 }
 

@@ -135,6 +135,7 @@ impl From<&DurationHuman> for StdDuration {
 }
 
 impl From<u64> for DurationHuman {
+    /// Create a duration in nano seconds
     fn from(nanos: u64) -> Self {
         Self::new(nanos)
     }
@@ -144,21 +145,28 @@ impl TryFrom<&str> for DurationHuman {
     type Error = DurationError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let matcher = regex!(
+            r"^(?:(\d+)\s*(?:(century|centuries)|(year|month|week|day)(?:s?)|(h|min|s|ms|μs|ns))\s*)*$"
+        );
+
         let splitter = regex!(
             r"(\d+)\s*(?:(century|centuries)|(year|month|week|day)(?:s?)|(h|min|s|ms|μs|ns))"
         );
 
-        if !splitter.is_match(value) {
+        if !matcher.is_match(value) {
             return Err(DurationError::InvalidSyntax);
         }
-        let mut unexpected = None;
-        let nanos = splitter
+
+        splitter
             .captures_iter(value)
             .map(|group| {
                 let value = group[1].parse::<u64>()?;
+
                 if value == 0 {
-                    Ok(0)
+                    Ok(DurationPart::default())
                 } else {
+                    let part: &str = group[0].as_ref();
+
                     #[allow(clippy::unwrap_used)] // somehow the RE has four groups
                     let unit = group
                         .get(2)
@@ -166,41 +174,29 @@ impl TryFrom<&str> for DurationHuman {
                         .unwrap();
 
                     match unit.as_str() {
-                        "century" | "centuries" => Ok(value * Self::CENTURY),
-                        "year" => Ok(value * Self::YEAR),
-                        "month" => Ok(value * Self::MONTH),
-                        "week" => Ok(value * Self::WEEK),
-                        "day" => Ok(value * Self::DAY),
-                        "h" => Ok(value * Self::HOUR),
-                        "min" => Ok(value * Self::MINUTE),
-                        "s" => Ok(value * Self::SEC),
-                        "ms" => Ok(value * Self::MILLI_SEC),
-                        "μs" => Ok(value * Self::MICRO_SEC),
-                        "ns" => Ok(value),
-
-                        sym => Err(DurationError::UnsupportedSymbol {
+                        "century" | "centuries" => (part, value, Self::CENTURY).try_into(),
+                        "year" => (part, value, Self::YEAR).try_into(),
+                        "month" => (part, value, Self::MONTH).try_into(),
+                        "week" => (part, value, Self::WEEK).try_into(),
+                        "day" => (part, value, Self::DAY).try_into(),
+                        "h" => (part, value, Self::HOUR).try_into(),
+                        "min" => (part, value, Self::MINUTE).try_into(),
+                        "s" => (part, value, Self::SEC).try_into(),
+                        "ms" => (part, value, Self::MILLI_SEC).try_into(),
+                        "μs" => (part, value, Self::MICRO_SEC).try_into(),
+                        "ns" => (part, value, 1).try_into(),
+                        sym => Err(DurationError::UnitMatchAndRegexNotInSync {
                             sym: sym.to_string(),
                         }),
                     }
                 }
             })
-            .fold(0, |nanos, r| {
-                let d = r.map_or_else(
-                    |err| {
-                        unexpected = Some(err);
-                        0
-                    },
-                    |d| d,
-                );
-                nanos + d
-            });
-
-        unexpected.map_or(
-            Ok(Self {
-                inner: std::time::Duration::from_nanos(nanos),
-            }),
-            Err,
-        )
+            .fold(Ok(0), |nanos_sum, part| {
+                nanos_sum.and_then(|nanos_sum| {
+                    part.and_then(|duration_part| duration_part.add(nanos_sum))
+                })
+            })
+            .map(Self::from)
     }
 }
 
@@ -211,8 +207,56 @@ impl From<DurationHuman> for clap::builder::OsStr {
 }
 
 impl From<&DurationHuman> for u64 {
+    /// convert this duration into nano seconds
     #[allow(clippy::cast_possible_truncation)] // cast is okay, as u64::MAX as milliseconds is more than 500 million years
     fn from(duration: &DurationHuman) -> Self {
         duration.inner.as_nanos() as Self
+    }
+}
+
+#[derive(Default)]
+struct DurationPart {
+    part: String,
+    nanos: u64,
+}
+
+impl TryFrom<(&str, u64, u64)> for DurationPart {
+    type Error = DurationError;
+
+    /// Create a `DurationPart` from a value and multiplication factor (both u64)
+    ///
+    /// ## Errors
+    /// if the product would overflow 2^64, the return is `DurationError::IntegerOverflowAt`
+    fn try_from((part, value, factor): (&str, u64, u64)) -> Result<Self, Self::Error> {
+        if factor < 1 {
+            return Ok(Self::default());
+        }
+
+        if value > u64::MAX / factor {
+            return Err(DurationError::IntegerOverflowAt {
+                duration: part.to_string(),
+            });
+        }
+
+        Ok(Self {
+            part: part.to_string(),
+            nanos: value * factor,
+        })
+    }
+}
+
+impl DurationPart {
+    /// Add another nano second value
+    ///
+    /// ## Errors
+    /// if the sum would overflow 2^64, the return is `DurationError::IntegerOverflowAt`
+    fn add(&self, rhs: u64) -> Result<u64, DurationError> {
+        if self.nanos > u64::MAX - rhs {
+            return Err(DurationError::IntegerOverflowAt {
+                duration: self.part.to_string(),
+            });
+        }
+
+        Ok(self.nanos + rhs)
     }
 }

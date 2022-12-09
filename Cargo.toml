@@ -9,10 +9,12 @@ edition = "2021"
 license-file = "LICENSE"
 repository = "https://github.com/HaKr/token_server.git"
 readme = "README.md"
+keywords = ["security", "one-time-token", "server"]
+categories = ["server"]
 
 [dependencies]
-duration-human = { path = "./duration-human", version = "0.1.7" }
-clap-duration = { path = "./clap-duration", version = "0.1.7" }
+duration-human = { path = "./duration-human", version = "0.1.8" }
+clap-duration = { path = "./clap-duration", version = "0.1.8" }
 
 tokio = { version = "1.19", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }

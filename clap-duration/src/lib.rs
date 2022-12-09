@@ -1,26 +1,12 @@
-//! > Macros to add duration value parsers for clap arguments
-//!
-//!
-//! ```rust
-//! use clap::Parser;
-//! use clap_duration::duration_range_value_parse;
-//! use duration_human::{DurationHuman, DurationHumanValidator};
-//!
-//! #[derive(Parser)]
-//! struct SampleOptions {
-//!
-//!     #[arg(
-//!         long, default_value="666000ms",
-//!         value_parser = duration_range_value_parse!(min: 10min, max: 1h)
-//!     )]
-//!     interval: DurationHuman,
-//! }
-//!
-//! let opts = SampleOptions::parse();
-//! assert_eq!(format!("{:#}",opts.interval), format!("11min 6s"));
-//! assert_eq!(opts.interval.to_string(), "666s".to_string())
-//!
-// ```
+#![deny(
+    clippy::all,
+    clippy::pedantic,
+    clippy::cargo,
+    clippy::nursery,
+    clippy::unwrap_in_result,
+    clippy::unwrap_used,
+    clippy::expect_used
+)]
 use duration_human::DurationHumanValidator;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
