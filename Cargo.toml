@@ -4,7 +4,7 @@ members = ["duration-human", "clap-duration"]
 [package]
 name = "token_server"
 description = "Server to provide one-time access tokens for some set of meta data"
-version = "0.1.12"
+version = "0.1.13"
 edition = "2021"
 license-file = "LICENSE"
 repository = "https://github.com/HaKr/token_server.git"
@@ -13,8 +13,8 @@ keywords = ["security", "one-time-token", "server"]
 categories = ["server"]
 
 [dependencies]
-duration-human = { path = "./duration-human", version = "0.1.8" }
-clap-duration = { path = "./clap-duration", version = "0.1.8" }
+duration-human = { path = "./duration-human", version = "0.1.9" }
+clap-duration = { path = "./clap-duration", version = "0.1.9" }
 
 tokio = { version = "1.19", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }

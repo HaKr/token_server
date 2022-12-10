@@ -16,7 +16,7 @@ fn roundtrip() {
 fn ignore_blanks_in_input() -> Result<(), DurationError> {
     let duration = DurationHuman::try_from("2year 1 week 3day 5h 6min 10s")?;
     assert_eq!(
-        format!("{:#}", duration),
+        format!("{duration:#}"),
         format!("2 years 1 week 3 days 5h 6min 10s")
     );
     Ok(())
@@ -27,7 +27,7 @@ fn max() -> Result<(), DurationError> {
     let duration = DurationHuman::try_from(
         "5 centuries 84 years 11 months 1 week 6 days 23h 34min 33s 709ms 551μs 615ns",
     )?;
-    let pretty = format!("{:#}", duration);
+    let pretty = format!("{duration:#}");
     let duration_from_pretty = DurationHuman::try_from(pretty.as_str())?;
     assert_eq!(duration, duration_from_pretty);
     Ok(())
@@ -46,7 +46,7 @@ mod errors {
                 DurationError::IntegerOverflowAt { duration } => {
                     assert_eq!(duration, "49h".to_string());
                 }
-                err => assert!(!is_err, "Did not expect the error: '{}'", err),
+                err => assert!(!is_err, "Did not expect the error: '{err}'"),
             }
         }
     }
@@ -59,7 +59,7 @@ mod errors {
         if let Err(err) = duration {
             match err {
                 DurationError::IntegerOverflowAt { duration } => assert!(!duration.is_empty()),
-                err => assert!(!is_err, "Did not expect the error: '{}'", err),
+                err => assert!(!is_err, "Did not expect the error: '{err}'"),
             }
         }
     }
@@ -70,7 +70,7 @@ mod errors {
         let contrived = result.iter().count();
         match result {
             Err(DurationError::InvalidSyntax) => (),
-            Err(err) => assert_eq!(contrived, 3, "Did not expect this error {}", err),
+            Err(err) => assert_eq!(contrived, 3, "Did not expect this error {err}"),
             Ok(duration) => assert_eq!(
                 contrived, 3,
                 "Did not expect a valid duration {:#}",

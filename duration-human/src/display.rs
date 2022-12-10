@@ -59,7 +59,7 @@ impl Display for DurationHuman {
             f.write_str(
                 match nanos {
                     _ if nanos < Self::MICRO_SEC || nanos % Self::MICRO_SEC != 0 => {
-                        format!("{}ns", nanos)
+                        format!("{nanos}ns")
                     }
                     _ if nanos < Self::MILLI_SEC || nanos % Self::MILLI_SEC != 0 => {
                         format!("{}μs", nanos / Self::MICRO_SEC)

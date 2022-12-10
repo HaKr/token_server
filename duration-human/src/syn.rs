@@ -32,7 +32,7 @@ impl Parse for DurationHumanValidator {
         let durations: Vec<ParsedDuration> = parser(input)?.into_iter().collect();
 
         TryInto::<Self>::try_into(durations).map_err(|duration_error| {
-            println!("Validator failure: {}", duration_error);
+            println!("Validator failure: {duration_error}");
             input.error(duration_error.to_string())
         })
     }

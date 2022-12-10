@@ -70,8 +70,8 @@ impl ResponseFromResult {
     fn internal_server_error() -> Self {
         Self {
             status_code: StatusCode::INTERNAL_SERVER_ERROR,
-            status_text: format!("{}", RwLockNotAcquired),
-            log_message: format!("{:#}", RwLockNotAcquired),
+            status_text: format!("{RwLockNotAcquired}",),
+            log_message: format!("{RwLockNotAcquired:#}"),
         }
     }
 
