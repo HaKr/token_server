@@ -28,7 +28,10 @@ DISCLAIMER: Not suited for high-volume metadata sets. My estimate is that it wil
             more appropriate
 
 ## Usage
-Usage: RUST_LOG='tower_http=trace,token_server=debug' cargo run [OPTIONS]
+Usage: 
+```sh
+RUST_LOG='tower_http=trace,token_server=debug' cargo run [OPTIONS]
+```
 
 Optional arguments:
   -h, --help       print this help message
