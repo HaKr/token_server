@@ -45,7 +45,7 @@ pub fn assign_duration_range_validator(input: TokenStream) -> TokenStream {
     let range = &assignment.range;
 
     let ident = format_ident!("{}", assignment.name.to_ascii_uppercase());
-    let (minimal_ms, default_ms, maximal_ms): (u64, u64, u64) = range.into();
+    let (minimal_ns, default_ns, maximal_ns): (u64, u64, u64) = range.into();
 
     let s = format!(
         "Validator to check that a human-friendly duration is between {min} and {max}, or defaults to {default:#}.",
@@ -56,7 +56,7 @@ pub fn assign_duration_range_validator(input: TokenStream) -> TokenStream {
 
     TokenStream::from(quote! {
         #[doc=#s]
-        const #ident: DurationHumanValidator = DurationHumanValidator::new(#minimal_ms, #default_ms, #maximal_ms);
+        const #ident: DurationHumanValidator = DurationHumanValidator::new(#minimal_ns, #default_ns, #maximal_ns);
     })
 }
 
@@ -64,10 +64,10 @@ pub fn assign_duration_range_validator(input: TokenStream) -> TokenStream {
 pub fn duration_range_validator(input: TokenStream) -> TokenStream {
     let validator = parse_macro_input!(input as DurationHumanValidator);
 
-    let (minimal_ms, default_ms, maximal_ms): (u64, u64, u64) = (&validator).into();
+    let (minimal_ns, default_ns, maximal_ns): (u64, u64, u64) = (&validator).into();
 
     TokenStream::from(quote! {
-        DurationHumanValidator::new(#minimal_ms, #default_ms, #maximal_ms)
+        DurationHumanValidator::new(#minimal_ns, #default_ns, #maximal_ns)
     })
 }
 
@@ -97,10 +97,10 @@ pub fn duration_range_validator(input: TokenStream) -> TokenStream {
 pub fn duration_range_value_parse(input: TokenStream) -> TokenStream {
     let validator = parse_macro_input!(input as DurationHumanValidator);
 
-    let (minimal_ms, default_ms, maximal_ms): (u64, u64, u64) = (&validator).into();
+    let (minimal_ns, default_ns, maximal_ns): (u64, u64, u64) = (&validator).into();
 
     TokenStream::from(quote! {
-        {|interval: &str|DurationHumanValidator::new(#minimal_ms, #default_ms, #maximal_ms).parse_and_validate(interval)}
+        {|interval: &str|DurationHumanValidator::new(#minimal_ns, #default_ns, #maximal_ns).parse_and_validate(interval)}
     })
 }
 
