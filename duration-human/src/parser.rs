@@ -18,9 +18,9 @@ type StdDuration = std::time::Duration;
 /// assert_eq!(format!("{:#}", duration), "3 days".to_string());
 /// assert_eq!(format!("{}", duration), "3 days".to_string());
 /// let duration = DurationHuman::try_from("18446744073709551615ns").unwrap();
-/// assert_eq!(format!("{:#}", duration), "5 centuries 84 years 11 months 1 week 6 days 23h 34min 33s 709ms 551μs 615ns".to_string());
+/// assert_eq!(format!("{:#}", duration), "5 centuries 84 years 6 months 2 weeks 1 day 8h 34min 33s 709ms 551μs 615ns".to_string());
 /// // roundtrip
-/// let duration = DurationHuman::try_from("5 centuries 84 years 11 months 1 week 6 days 23h 34min 33s 709ms 551μs 615ns").unwrap();
+/// let duration = DurationHuman::try_from("5 centuries 84 years 6 months 2 weeks 1 day 8h 34min 33s 709ms 551μs 615ns").unwrap();
 /// let pretty = format!("{:#}", duration);
 /// let duration_from_pretty = DurationHuman::try_from(pretty.as_str())?;
 /// assert_eq!(duration, duration_from_pretty);
@@ -54,8 +54,8 @@ impl DurationHuman {
     pub const HOUR: u64 = 60 * Self::MINUTE;
     pub const DAY: u64 = 24 * Self::HOUR;
     pub const WEEK: u64 = 7 * Self::DAY;
-    pub const MONTH: u64 = 30 * Self::DAY;
-    pub const YEAR: u64 = 365 * Self::DAY;
+    pub const YEAR: u64 = 31_557_600 * Self::SEC;
+    pub const MONTH: u64 = Self::YEAR / 12;
     pub const CENTURY: u64 = 100 * Self::YEAR;
 
     pub const ONE_SECOND: Self = Self::new(Self::SEC);

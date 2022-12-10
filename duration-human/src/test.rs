@@ -23,9 +23,18 @@ fn ignore_blanks_in_input() -> Result<(), DurationError> {
 }
 
 #[test]
+fn max_ns() {
+    let duration = DurationHuman::from(u64::MAX);
+    assert_eq!(
+        format!("{duration:#}"),
+        format!("5 centuries 84 years 6 months 2 weeks 1 day 8h 34min 33s 709ms 551μs 615ns")
+    );
+}
+
+#[test]
 fn max() -> Result<(), DurationError> {
     let duration = DurationHuman::try_from(
-        "5 centuries 84 years 11 months 1 week 6 days 23h 34min 33s 709ms 551μs 615ns",
+        "5 centuries 84 years 6 months 2 weeks 1 day 8h 34min 33s 709ms 551μs 615ns",
     )?;
     let pretty = format!("{duration:#}");
     let duration_from_pretty = DurationHuman::try_from(pretty.as_str())?;
@@ -38,13 +47,13 @@ mod errors {
 
     #[test]
     fn overflow() {
-        let duration = DurationHuman::try_from("584 year 10 months 5 weeks 7 days 49h");
+        let duration = DurationHuman::try_from("584 year 5 months 7 weeks 7 days 49h");
         let is_err = duration.is_err();
         assert!(is_err);
         if let Err(err) = duration {
             match err {
                 DurationError::IntegerOverflowAt { duration } => {
-                    assert_eq!(duration, "49h".to_string());
+                    assert_eq!(duration, "7 weeks".to_string());
                 }
                 err => assert!(!is_err, "Did not expect the error: '{err}'"),
             }
