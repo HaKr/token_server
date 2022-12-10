@@ -1,3 +1,11 @@
+#![deny(
+    clippy::all,
+    clippy::pedantic,
+    clippy::nursery,
+    clippy::unwrap_in_result,
+    clippy::unwrap_used,
+    clippy::expect_used
+)]
 use std::{fmt::Display, net::SocketAddr, sync::Arc};
 
 use axum::{
@@ -76,7 +84,7 @@ async fn main() -> Result<(), hyper::Error> {
                             trace!("{}", purged);
                         }
                     },
-                )
+                );
         }
     });
 
