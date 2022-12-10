@@ -48,9 +48,10 @@ pub fn assign_duration_range_validator(input: TokenStream) -> TokenStream {
     let (minimal_ms, default_ms, maximal_ms): (u64, u64, u64) = range.into();
 
     let s = format!(
-        "Validator to check that human-friendly duration is {range}, or set to {default:#}.",
-        range = &assignment.range,
-        default = &assignment.range.default
+        "Validator to check that a human-friendly duration is between {min} and {max}, or defaults to {default:#}.",
+        min = &assignment.range.min,
+        default = &assignment.range.default,
+        max = &assignment.range.max
     );
 
     TokenStream::from(quote! {
