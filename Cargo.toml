@@ -13,8 +13,8 @@ keywords = ["security", "one-time-token", "server"]
 categories = ["authentication"]
 
 [dependencies]
-duration-human = { path = "./duration-human", version = "0.1.10" }
-clap-duration = { path = "./clap-duration", version = "0.1.9" }
+duration-human = { path = "./duration-human", version = "0.1.9" }
+clap-duration = { path = "./clap-duration", version = "0.1.10" }
 
 tokio = { version = "1.19", features = ["full"] }
 hyper = { version = "0.14", features = ["full"] }
