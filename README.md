@@ -34,6 +34,7 @@ RUST_LOG='tower_http=trace,token_server=debug' cargo run [OPTIONS]
 ```
 
 Optional arguments:
+```text
   -h, --help       print this help message
   -d, --dump       allow for HEAD /dump endpoint to log all metadata
   -p, --port PORT  Which port to listen on (default: 3666)
@@ -41,6 +42,7 @@ Optional arguments:
                    What frequency to remove expired tokens, between 1s and 90min (default: 1min)
   -t, --token-lifetime TOKEN-LIFETIME
                    How long does a token remain valid, between 30min and 96h (default: 2h)
+```
 
 ## REST API
 
