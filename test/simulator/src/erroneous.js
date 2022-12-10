@@ -8,6 +8,9 @@ async function main() {
     // create without meta
     await requests.create(instance, null).then(token => console.log("Token=", token), console.error);
 
+    // create with invalid payload type
+    await requests.create_invalid(instance, null).then(token => console.log("Token=", token), console.error);
+
     // invalid endpoint
     await requests.nonexisting(instance).then(() => console.log("succeeded"), console.error);
 

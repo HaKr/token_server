@@ -2,14 +2,14 @@ use std::{collections::HashMap, sync::RwLock, time::Instant};
 
 use chrono::{DateTime, Utc};
 use duration_human::DurationHuman;
-use serde::Serialize;
+
 use tracing::debug;
 use uuid::Uuid;
 
 use super::{
     api::{Guid, MetaData, UpdateResponsePayload},
-    purging::PurgeResult,
-    MetaDataMustBeJsonObject, RwLockNotAcquired, TokenCreateFailed, TokenUpdateFailed,
+    formatting::{DumpEntry, PurgeResult},
+    RwLockNotAcquired, TokenCreateFailed, TokenUpdateFailed,
 };
 
 pub struct TokenStore {
@@ -21,23 +21,6 @@ pub struct TokenStore {
 
 type TokensByID = HashMap<Guid, (Instant, MetaData)>;
 
-#[derive(Serialize)]
-struct DumpEntry<'de> {
-    expires: String,
-    meta: &'de MetaData,
-}
-
-impl Default for TokenStore {
-    fn default() -> Self {
-        Self {
-            tokens: RwLock::default(),
-            started_at_instant: Instant::now(),
-            started_at_utc: chrono::Utc::now(),
-            token_lifetime: DurationHuman::default(),
-        }
-    }
-}
-
 impl TokenStore {
     pub const fn with_token_lifetime(mut self, lifetime: DurationHuman) -> Self {
         self.token_lifetime = lifetime;
@@ -47,17 +30,28 @@ impl TokenStore {
 
     pub fn create_token(&self, metadata: MetaData) -> Result<String, TokenCreateFailed> {
         if !metadata.is_object() {
-            Err(MetaDataMustBeJsonObject)?;
+            return Err(TokenCreateFailed::MetaDataMustBeJsonObject);
         }
 
-        let mut tokens = self.tokens.write().map_err(RwLockNotAcquired::from)?;
+        self.tokens
+            .write()
+            .or(Err(TokenCreateFailed::RwLockNotAcquired))
+            .map(|mut tokens| {
+                let (token, expires) = self.new_token();
 
-        let (tokenkey, expires) = self.new_token();
-        let token = tokenkey.clone();
+                tokens.insert(token.clone(), (expires, metadata));
 
-        tokens.insert(tokenkey, (expires, metadata));
+                token
+            })
+    }
 
-        Ok(token)
+    pub fn remove_token(&self, token: &String) -> Result<(), RwLockNotAcquired> {
+        self.tokens
+            .write()
+            .or(Err(RwLockNotAcquired))
+            .map(|mut tokens| {
+                tokens.remove(token);
+            })
     }
 
     pub fn update_token(
@@ -65,58 +59,57 @@ impl TokenStore {
         tokenkey: &String,
         metadata_update: Option<MetaData>,
     ) -> Result<UpdateResponsePayload, TokenUpdateFailed> {
-        let mut tokens = self.tokens.write().map_err(RwLockNotAcquired::from)?;
-        let now = Instant::now();
+        self.tokens
+            .write()
+            .or(Err(TokenUpdateFailed::RwLockNotAcquired))
+            .and_then(|mut tokens| {
+                tokens
+                    .remove(tokenkey)
+                    .and_then(|(expires, mut meta)| {
+                        if expires > Instant::now() {
+                            let (token, expires) = self.new_token();
 
-        let mut meta = tokens.remove(tokenkey).map_or(
-            Err(TokenUpdateFailed::InvalidToken),
-            |(expires, metadata)| {
-                if expires > now {
-                    Ok(metadata)
-                } else {
-                    Err(TokenUpdateFailed::InvalidToken)
-                }
-            },
-        )?;
+                            metadata_update.and_then(|metadata_update| {
+                                metadata_update.as_object().and_then(
+                                    |metadata_update_key_value_pairs| {
+                                        meta.as_object_mut().map(|meta_key_value_pairs| {
+                                            meta_key_value_pairs.extend(
+                                                metadata_update_key_value_pairs
+                                                    .iter()
+                                                    .map(|(k, v)| (k.to_string(), v.clone())),
+                                            );
+                                        })
+                                    },
+                                )
+                            });
 
-        if let Some(metadata_update) = metadata_update {
-            if let Some(existing) = meta.as_object_mut() {
-                if let Some(map) = metadata_update.as_object() {
-                    for (k, v) in map {
-                        existing.insert(k.to_string(), v.clone());
-                    }
-                }
-            }
-        }
-
-        let (token, expires) = self.new_token();
-
-        tokens.insert(token.clone(), (expires, meta.clone()));
-
-        Ok(UpdateResponsePayload { token, meta })
-    }
-
-    pub fn remove_token(&self, token: &String) -> Result<(), RwLockNotAcquired> {
-        let mut tokens = self.tokens.write()?;
-
-        let _meta = tokens.remove(token);
-
-        Ok(())
+                            tokens.insert(token.clone(), (expires, meta.clone()));
+                            Some(UpdateResponsePayload { token, meta })
+                        } else {
+                            None
+                        }
+                    })
+                    .ok_or(TokenUpdateFailed::InvalidToken)
+            })
     }
 
     pub fn remove_expired_tokens(&self) -> Result<PurgeResult, RwLockNotAcquired> {
-        let mut tokens = self.tokens.write()?;
-        let now = Instant::now();
+        self.tokens
+            .write()
+            .or(Err(RwLockNotAcquired))
+            .map(|mut tokens| {
+                let now = Instant::now();
 
-        let tokens_before = tokens.len();
-        tokens.retain(|_, (expires, _)| *expires >= now);
+                let tokens_before = tokens.len();
+                tokens.retain(|_key, (expires, _meta)| *expires >= now);
 
-        let tokens = tokens.len();
+                let tokens = tokens.len();
 
-        Ok(PurgeResult {
-            tokens,
-            purged: tokens_before - tokens,
-        })
+                PurgeResult {
+                    tokens,
+                    purged: tokens_before - tokens,
+                }
+            })
     }
 
     pub fn dump_meta(&self) {
@@ -128,12 +121,10 @@ impl TokenStore {
 
                     // let's assume no wrap occurs, otherwise funny debug log
                     #[allow(clippy::cast_possible_wrap)]
-                    let expires = (self.started_at_utc
-                        + chrono::Duration::seconds(duration.as_secs() as i64))
-                    .format("%Y-%m-%d %H:%M:%S")
-                    .to_string();
-
-                    DumpEntry { expires, meta }
+                    DumpEntry::new(
+                        self.started_at_utc + chrono::Duration::seconds(duration.as_secs() as i64),
+                        meta,
+                    )
                 })
                 .collect::<Vec<DumpEntry>>();
 
@@ -151,5 +142,16 @@ impl TokenStore {
             Uuid::new_v4().to_string(),
             self.token_lifetime + Instant::now(),
         )
+    }
+}
+
+impl Default for TokenStore {
+    fn default() -> Self {
+        Self {
+            tokens: RwLock::default(),
+            started_at_instant: Instant::now(),
+            started_at_utc: chrono::Utc::now(),
+            token_lifetime: DurationHuman::default(),
+        }
     }
 }

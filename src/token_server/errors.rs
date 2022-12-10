@@ -3,18 +3,18 @@
 // macro expansion, thus suppress it for this entire file
 #![allow(clippy::use_self)]
 
-use std::{fmt::Display, sync::PoisonError};
+use std::fmt::Display;
 
 use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Error, Debug, Serialize)]
 pub enum TokenCreateFailed {
-    #[error("InvalidMetadata")]
-    MetaDataMustBeJsonObject(#[from] MetaDataMustBeJsonObject),
+    #[error("metadata must be a JSON object")]
+    MetaDataMustBeJsonObject,
 
     #[error("InternalServerError")]
-    RwLockNotAcquired(#[from] RwLockNotAcquired),
+    RwLockNotAcquired,
 }
 
 #[derive(Error, Debug, Serialize)]
@@ -23,22 +23,10 @@ pub enum TokenUpdateFailed {
     InvalidToken,
 
     #[error("InternalServerError")]
-    InternalServerError(#[from] RwLockNotAcquired),
-
-    #[error("InvalidMetadata")]
-    MetaDataMustBeJsonObject(#[from] MetaDataMustBeJsonObject),
+    RwLockNotAcquired,
 
     #[error("Deserialize failed")]
     MustNeverOccur,
-}
-
-#[derive(Debug, Error, Serialize, Copy, Clone)]
-pub struct MetaDataMustBeJsonObject;
-
-impl Display for MetaDataMustBeJsonObject {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("metadata must be a JSON object")
-    }
 }
 
 #[derive(Debug, Error, Serialize, Copy, Clone)]
@@ -46,13 +34,11 @@ pub struct RwLockNotAcquired;
 
 impl Display for RwLockNotAcquired {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("could not acquire read/write lock")
-    }
-}
-
-impl<P> From<PoisonError<P>> for RwLockNotAcquired {
-    fn from(_: PoisonError<P>) -> Self {
-        Self {}
+        f.write_str(if f.alternate() {
+            "could not acquire read/write lock"
+        } else {
+            "InternalServerError"
+        })
     }
 }
 

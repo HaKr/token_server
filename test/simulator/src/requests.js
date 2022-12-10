@@ -23,9 +23,32 @@ export async function create(instance, meta) {
             return { created: Date.now(), token };
         }
     } else {
-        throw new Error(await response.text())
+        throw new Error(`[${response.status} ${response.statusText}] ${await response.text()}`)
     }
 }
+
+export async function create_invalid(instance, meta) {
+    const response = await fetch(`${ENDPOINT_TOKEN}?instance=${instance}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "text/plain"
+        },
+        body: JSON.stringify({ meta })
+    });
+
+    if (response.ok) {
+        let token = await response.text();
+        if (token.startsWith("ERROR")) {
+            throw new Error(token.substring(7));
+        } else {
+            return { created: Date.now(), token };
+        }
+    } else {
+        throw new Error(`[${response.status} ${response.statusText}] ${await response.text()}`)
+    }
+}
+
+
 
 export async function update(instance, tokenInfo, meta) {
     const { token, created, format, log } = analyse(tokenInfo, instance, meta ? `UPDATE ${metaInfo(meta)}` : "REFRESH");
@@ -39,6 +62,7 @@ export async function update(instance, tokenInfo, meta) {
 
     if (response.ok && response.headers.get('content-type') == 'application/json') {
         let info = await response.json();
+
         if (info.Ok) {
             log("success", metaInfo(info.Ok.meta));
             return { created: Date.now(), token: info.Ok.token };
@@ -48,7 +72,7 @@ export async function update(instance, tokenInfo, meta) {
 
         }
     } else {
-        throw new Error(format(`canceled: ${await response.text()}`));
+        throw new Error(format(`[${response.status} ${response.statusText}] canceled: ${await response.text()}`));
     }
 }
 

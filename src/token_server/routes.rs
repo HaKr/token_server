@@ -20,13 +20,7 @@ pub async fn create_token(
     extract::Json(metadata): extract::Json<CreatePayload>,
 ) -> (StatusCode, String) {
     state.create_token(metadata.meta).map_or_else(
-        |e| match e {
-            TokenCreateFailed::MetaDataMustBeJsonObject(e) => {
-                error!("{}", e);
-                (StatusCode::OK, format!("ERROR: {}", e))
-            }
-            TokenCreateFailed::RwLockNotAcquired(e) => internal_server_error(e),
-        },
+        |err| ResponseFromResult::from(err).log().into_tuple(),
         |token| (StatusCode::OK, token),
     )
 }
@@ -35,25 +29,28 @@ pub async fn update_token(
     State(state): State<Arc<TokenStore>>,
     extract::Json(payload): extract::Json<UpdatePayload>,
 ) -> Response {
-    let res = state.update_token(&payload.token, payload.meta);
+    let update_result = state.update_token(&payload.token, payload.meta);
 
-    match res {
-        Err(TokenUpdateFailed::InternalServerError(err)) => {
-            internal_server_error(err).into_response()
-        }
-        _ => Json(res).into_response(),
+    match update_result {
+        Err(TokenUpdateFailed::RwLockNotAcquired) => ResponseFromResult::internal_server_error()
+            .log()
+            .into_response(),
+        _ => Json(update_result).into_response(),
     }
 }
 
 pub async fn remove_token(
     State(state): State<Arc<TokenStore>>,
     extract::Json(payload): extract::Json<RemovePayload>,
-) -> (StatusCode, String) {
-    state
-        .remove_token(&payload.token)
-        .map_or_else(internal_server_error, |()| {
-            (StatusCode::ACCEPTED, String::new())
-        })
+) -> Response {
+    state.remove_token(&payload.token).map_or_else(
+        |_e| {
+            ResponseFromResult::internal_server_error()
+                .log()
+                .into_response()
+        },
+        |()| StatusCode::ACCEPTED.into_response(),
+    )
 }
 
 pub async fn dump_meta(State(state): State<Arc<TokenStore>>) -> StatusCode {
@@ -62,9 +59,52 @@ pub async fn dump_meta(State(state): State<Arc<TokenStore>>) -> StatusCode {
     StatusCode::ACCEPTED
 }
 
-#[inline]
-fn internal_server_error(e: RwLockNotAcquired) -> (StatusCode, String) {
-    let msg = format!("{}", e);
-    error!(msg);
-    (StatusCode::INTERNAL_SERVER_ERROR, msg)
+struct ResponseFromResult {
+    status_code: StatusCode,
+    status_text: String,
+    log_message: String,
+}
+
+impl ResponseFromResult {
+    /// respond with 500 Internal server error and write error message to the server log
+    fn internal_server_error() -> Self {
+        Self {
+            status_code: StatusCode::INTERNAL_SERVER_ERROR,
+            status_text: format!("{}", RwLockNotAcquired),
+            log_message: format!("{:#}", RwLockNotAcquired),
+        }
+    }
+
+    /// write an error message to the server log
+    fn log(self) -> Self {
+        error!("{}", self.log_message);
+
+        self
+    }
+
+    /// move the contents to a `(StatusCode, String)` tuple
+    #[allow(clippy::missing_const_for_fn)]
+    fn into_tuple(self) -> (StatusCode, String) {
+        (self.status_code, self.status_text)
+    }
+
+    /// move the contents to a `http::Response`
+    #[deny(clippy::missing_const_for_fn)]
+    fn into_response(self) -> Response {
+        self.into_tuple().into_response()
+    }
+}
+
+impl From<TokenCreateFailed> for ResponseFromResult {
+    fn from(err: TokenCreateFailed) -> Self {
+        match err {
+            TokenCreateFailed::MetaDataMustBeJsonObject => Self {
+                status_code: StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                status_text: String::from("ERROR: metadata must be a JSON object"),
+
+                log_message: String::from("Received invalid JSON data"),
+            },
+            TokenCreateFailed::RwLockNotAcquired => Self::internal_server_error(),
+        }
+    }
 }
