@@ -93,6 +93,45 @@ impl TokenStore {
             })
     }
 
+    pub fn _update_token_alt(
+        &self,
+        tokenkey: &String,
+        metadata_update: Option<MetaData>,
+    ) -> Result<UpdateResponsePayload, TokenUpdateFailed> {
+        let mut tokens = self
+            .tokens
+            .write()
+            .or(Err(TokenUpdateFailed::RwLockNotAcquired))?;
+
+        tokens
+            .remove(tokenkey)
+            .and_then(|(expires, mut meta)| {
+                if expires > Instant::now() {
+                    let (token, expires) = self.new_token();
+
+                    metadata_update.and_then(|metadata_update| {
+                        metadata_update
+                            .as_object()
+                            .and_then(|metadata_update_key_value_pairs| {
+                                meta.as_object_mut().map(|meta_key_value_pairs| {
+                                    meta_key_value_pairs.extend(
+                                        metadata_update_key_value_pairs
+                                            .iter()
+                                            .map(|(k, v)| (k.to_string(), v.clone())),
+                                    );
+                                })
+                            })
+                    });
+
+                    tokens.insert(token.clone(), (expires, meta.clone()));
+                    Some(UpdateResponsePayload { token, meta })
+                } else {
+                    None
+                }
+            })
+            .ok_or(TokenUpdateFailed::InvalidToken)
+    }
+
     pub fn remove_expired_tokens(&self) -> Result<PurgeResult, RwLockNotAcquired> {
         self.tokens
             .write()
