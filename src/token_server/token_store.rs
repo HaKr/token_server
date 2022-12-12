@@ -135,9 +135,10 @@ impl Default for TokenStore {
     fn default() -> Self {
         Self {
             tokens: RwLock::default(),
+            token_lifetime: DurationHuman::default(),
+            // the two started_xxx dields are only required to show expiration timestamp in human readable format in dump
             started_at_instant: Instant::now(),
             started_at_utc: chrono::Utc::now(),
-            token_lifetime: DurationHuman::default(),
         }
     }
 }
