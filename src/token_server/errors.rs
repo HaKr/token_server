@@ -9,15 +9,6 @@ use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Error, Debug, Serialize)]
-pub enum TokenCreateFailed {
-    #[error("metadata must be a JSON object")]
-    MetaDataMustBeJsonObject,
-
-    #[error("InternalServerError")]
-    RwLockNotAcquired,
-}
-
-#[derive(Error, Debug, Serialize)]
 pub enum TokenUpdateFailed {
     #[error("InvalidToken")]
     InvalidToken,

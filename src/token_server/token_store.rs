@@ -9,7 +9,7 @@ use uuid::Uuid;
 use super::{
     api::{Guid, MetaData, UpdateResponsePayload},
     formatting::{DumpEntry, PurgeResult},
-    RwLockNotAcquired, TokenCreateFailed, TokenUpdateFailed,
+    RwLockNotAcquired, TokenUpdateFailed,
 };
 
 pub struct TokenStore {
@@ -28,14 +28,10 @@ impl TokenStore {
         self
     }
 
-    pub fn create_token(&self, metadata: MetaData) -> Result<String, TokenCreateFailed> {
-        if !metadata.is_object() {
-            return Err(TokenCreateFailed::MetaDataMustBeJsonObject);
-        }
-
+    pub fn create_token(&self, metadata: MetaData) -> Result<String, RwLockNotAcquired> {
         self.tokens
             .write()
-            .or(Err(TokenCreateFailed::RwLockNotAcquired))
+            .or(Err(RwLockNotAcquired))
             .map(|mut tokens| {
                 let (token, expires) = self.new_token();
 
@@ -69,7 +65,9 @@ impl TokenStore {
                         if expires > Instant::now() {
                             let (token, expires) = self.new_token();
 
-                            meta.extend(metadata_update);
+                            if let Some(metadata_update) = metadata_update {
+                                meta.extend(metadata_update);
+                            }
 
                             tokens.insert(token.clone(), (expires, meta.clone()));
                             Some(UpdateResponsePayload { token, meta })
@@ -141,32 +139,5 @@ impl Default for TokenStore {
             started_at_utc: chrono::Utc::now(),
             token_lifetime: DurationHuman::default(),
         }
-    }
-}
-
-trait Extendable
-where
-    Self: Sized,
-{
-    fn extend(&mut self, with: Option<Self>);
-}
-
-impl Extendable for serde_json::Value {
-    /// Adds all key/value pairs of the other value, when this is an object,
-    ///    otherwise no changes are made
-    fn extend(&mut self, other: Option<Self>) {
-        other.and_then(|metadata_update| {
-            metadata_update
-                .as_object()
-                .and_then(|metadata_update_key_value_pairs| {
-                    self.as_object_mut().map(|meta_key_value_pairs| {
-                        meta_key_value_pairs.extend(
-                            metadata_update_key_value_pairs
-                                .iter()
-                                .map(|(k, v)| (k.to_string(), v.clone())),
-                        );
-                    })
-                })
-        });
     }
 }

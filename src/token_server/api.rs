@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value as JsonValue;
+use serde_json::{Map as JsonObject, Value as JsonValue};
 
-pub type MetaData = JsonValue;
+pub type MetaData = JsonObject<String, JsonValue>;
 pub type Guid = String;
 
 #[derive(Deserialize)]
