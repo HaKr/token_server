@@ -7,9 +7,9 @@ use tracing::debug;
 use uuid::Uuid;
 
 use super::{
-    api::{Guid, MetaData, UpdateResponsePayload},
+    api::{Guid, MetaData, UpdateResponsePayload, ValidateResponsePayload},
     formatting::{DumpEntry, PurgeResult},
-    RwLockNotAcquired, TokenUpdateFailed,
+    RwLockNotAcquired, TokenUpdateFailed, TokenValidateFailed,
 };
 
 pub struct TokenStore {
@@ -76,6 +76,25 @@ impl TokenStore {
                         }
                     })
                     .ok_or(TokenUpdateFailed::InvalidToken)
+            })
+    }
+
+    pub fn validate_token(
+        &self,
+        tokenkey: &String,
+    ) -> Result<ValidateResponsePayload, TokenValidateFailed> {
+        self.tokens
+            .read()
+            .or(Err(TokenValidateFailed::RwLockNotAcquired))
+            .and_then(|tokens| {
+                tokens.get(tokenkey).map_or_else(
+                    || Err(TokenValidateFailed::InvalidToken),
+                    |(_expired, metadata)| {
+                        Ok(ValidateResponsePayload {
+                            meta: metadata.clone(),
+                        })
+                    },
+                )
             })
     }
 

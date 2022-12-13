@@ -92,6 +92,25 @@ export async function remove(instance, tokenInfo) {
     }
 }
 
+export async function validate(instance, tokenInfo) {
+    const { token, created, format, log } = analyse(tokenInfo, instance, "validate");
+
+    let response = await fetch(`${SERVER}/token/validate`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ token })
+    });
+
+    if (response.ok) {
+        let info = await response.json();
+        log("success", metaInfo(info.Ok.meta));
+        return { created, token };
+
+    } else {
+        throw new Error(format(`[${response.status} ${response.statusText}] not validated: ${await response.text()}`));
+    }
+}
+
 export function dump(instance) {
 
     return fetch(`${ENDPOINT_DUMP}?d=${instance}`, {

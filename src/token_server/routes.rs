@@ -11,8 +11,8 @@ use http::StatusCode;
 use tracing::error;
 
 use super::{
-    api::{CreatePayload, RemovePayload, UpdatePayload},
-    RwLockNotAcquired, TokenStore, TokenUpdateFailed,
+    api::{CreatePayload, TokenOnlyPayload, UpdatePayload},
+    RwLockNotAcquired, TokenStore, TokenUpdateFailed, TokenValidateFailed,
 };
 
 pub async fn create_token(
@@ -45,7 +45,7 @@ pub async fn update_token(
 
 pub async fn remove_token(
     State(state): State<Arc<TokenStore>>,
-    extract::Json(payload): extract::Json<RemovePayload>,
+    extract::Json(payload): extract::Json<TokenOnlyPayload>,
 ) -> Response {
     state.remove_token(&payload.token).map_or_else(
         |_e| {
@@ -55,6 +55,20 @@ pub async fn remove_token(
         },
         |()| StatusCode::ACCEPTED.into_response(),
     )
+}
+
+pub async fn validate_token(
+    State(state): State<Arc<TokenStore>>,
+    extract::Json(payload): extract::Json<TokenOnlyPayload>,
+) -> Response {
+    let update_result = state.validate_token(&payload.token);
+
+    match update_result {
+        Err(TokenValidateFailed::RwLockNotAcquired) => ResponseFromResult::internal_server_error()
+            .log()
+            .into_response(),
+        _ => Json(update_result).into_response(),
+    }
 }
 
 pub async fn dump_meta(State(state): State<Arc<TokenStore>>) -> StatusCode {

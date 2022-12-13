@@ -20,6 +20,15 @@ pub enum TokenUpdateFailed {
     MustNeverOccur,
 }
 
+#[derive(Error, Debug, Serialize)]
+pub enum TokenValidateFailed {
+    #[error("InvalidToken")]
+    InvalidToken,
+
+    #[error("InternalServerError")]
+    RwLockNotAcquired,
+}
+
 #[derive(Debug, Error, Serialize, Copy, Clone)]
 pub struct RwLockNotAcquired;
 

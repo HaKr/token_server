@@ -9,7 +9,7 @@
 use std::{fmt::Display, net::SocketAddr, sync::Arc};
 
 use axum::{
-    routing::{delete, head, post, put},
+    routing::{head, post, put},
     Router,
 };
 use clap::Parser;
@@ -61,10 +61,11 @@ async fn main() -> Result<(), hyper::Error> {
     tracing_subscriber::fmt::init();
 
     let opts = ServerOptions::parse();
-    info!("Token server listening: {}", opts);
+    info!("Token server: {}", opts);
 
     let log_debug_enabled = enabled!(Level::DEBUG);
     let addr = SocketAddr::from(([127, 0, 0, 1], opts.port));
+
     let token_store = Arc::new(TokenStore::default().with_token_lifetime(opts.token_lifetime));
     let token_store_during_purge = token_store.clone();
 
@@ -89,9 +90,13 @@ async fn main() -> Result<(), hyper::Error> {
     });
 
     let mut token_server_routes = Router::new()
-        .route("/token", post(routes::create_token))
-        .route("/token", put(routes::update_token))
-        .route("/token", delete(routes::remove_token));
+        .route("/token/validate", put(routes::validate_token))
+        .route(
+            "/token",
+            post(routes::create_token)
+                .put(routes::update_token)
+                .delete(routes::remove_token),
+        );
 
     if opts.dump && log_debug_enabled {
         token_server_routes = token_server_routes.route("/dump", head(routes::dump_meta));

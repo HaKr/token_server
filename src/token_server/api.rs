@@ -16,12 +16,17 @@ pub struct UpdatePayload {
 }
 
 #[derive(Deserialize)]
-pub struct RemovePayload {
+pub struct TokenOnlyPayload {
     pub token: Guid,
 }
 
 #[derive(Serialize)]
 pub struct UpdateResponsePayload {
     pub token: Guid,
+    pub meta: MetaData,
+}
+
+#[derive(Serialize)]
+pub struct ValidateResponsePayload {
     pub meta: MetaData,
 }

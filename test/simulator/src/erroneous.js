@@ -1,6 +1,6 @@
 import * as requests from "./requests.js";
 
-const instance = "err";
+const instance = "erroneus";
 
 // { token: "made-up", deepThought: { answer: 42 } }
 

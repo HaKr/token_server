@@ -35,13 +35,20 @@ async function main() {
     if (dump) requests.dump(instance);
 
     // refresh
-    await Promise.all(tokens.filter(info => !info.invalid).map(async (token, index) => {
-        if (index == 0 && (instance == DEFAULT_INSTANCE || instance == "A")) {
+    tokens = await Promise.all(tokens.filter(info => !info.invalid).map(async (token, index) => {
+        if (index == 666 && (instance == DEFAULT_INSTANCE || instance == "A")) {
             await requests.remove(instance, token);
         }
         await sleep(3);
         return requests.update(instance, token);
     }));
+
+    // validate
+    await Promise.all(tokens.filter(info => !info.invalid).map(async (token, index) => {
+        await sleep(6);
+        return requests.validate(instance, token);
+    }));
+
 
     if (dump) {
         await sleep(1);
