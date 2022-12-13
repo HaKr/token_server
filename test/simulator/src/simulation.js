@@ -10,7 +10,7 @@ const { instance, dump } = typeof instanceName == "string" && instanceName.lengt
 
 const { sleep, doSleep } = typeof randomSleep == "string" && randomSleep.toLowerCase() == "yes" ?
     {
-        sleep: (secs) => new Promise((resolve) => setTimeout(resolve, secs * 1_000)), doSleep: true
+        sleep: (secs) => new Promise((resolve) => setTimeout(resolve, Math.random() * secs * 1_000)), doSleep: true
     } :
     { sleep: (_) => Promise.resolve(), doSleep: false };
 
@@ -28,7 +28,7 @@ async function main() {
 
     // update
     tokens = await Promise.all(tokens.map(async oldtoken => {
-        await sleep(Math.random() * 10);
+        await sleep(10);
         return requests.update(instance, oldtoken, { updatedAt: `${Date.now()}` });
     }));
 
@@ -39,7 +39,7 @@ async function main() {
         if (index == 0 && (instance == DEFAULT_INSTANCE || instance == "A")) {
             await requests.remove(instance, token);
         }
-        await sleep(Math.random() * 3);
+        await sleep(3);
         return requests.update(instance, token);
     }));
 
