@@ -22,6 +22,10 @@ export const metadata_collection = [
     },
 
     {
+        invalid: true
+    },
+
+    {
         year: "2020",
         week: 11,
         covid_19: true

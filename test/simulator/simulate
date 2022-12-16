@@ -1,14 +1,24 @@
 #!/bin/sh
 clear
-node src/simulation.js A $1 &
-node src/simulation.js B $1 &
-node src/simulation.js C $1 &
-node src/simulation.js D $1 &
-node src/simulation.js E $1 &
 
-sleep 1s
-curl --silent --head http://localhost:3666/dump >/dev/null
+dumpit() {
+    sleep 1
+    echo request dump on server
+    curl --silent --head http://localhost:3666/dump >/dev/null
+}
+
+if [ "$1" = "yes" ]; then
+    dumpit &
+fi
+
+for sim in A B C D E; do
+    deno run --allow-net src/simulation.ts $sim $1 &
+done
+
 wait
-curl --silent --head http://localhost:3666/dump >/dev/null
 
+if [ "$1" = "yes" ]; then
+    echo request dump on server
+    curl --silent --head http://localhost:3666/dump >/dev/null
+fi
 echo ALL done

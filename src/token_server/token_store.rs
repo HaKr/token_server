@@ -3,6 +3,7 @@ use std::{collections::HashMap, sync::RwLock, time::Instant};
 use chrono::{DateTime, Utc};
 use duration_human::DurationHuman;
 
+use axum_server::Handle;
 use tracing::debug;
 use uuid::Uuid;
 
@@ -14,6 +15,7 @@ use super::{
 
 pub struct TokenStore {
     tokens: RwLock<TokensByID>,
+    handle: Option<Handle>,
     started_at_instant: Instant,
     started_at_utc: DateTime<Utc>,
     token_lifetime: DurationHuman,
@@ -24,6 +26,13 @@ type TokensByID = HashMap<Guid, (Instant, MetaData)>;
 impl TokenStore {
     pub const fn with_token_lifetime(mut self, lifetime: DurationHuman) -> Self {
         self.token_lifetime = lifetime;
+
+        self
+    }
+
+    #[allow(clippy::missing_const_for_fn)]
+    pub fn with_handle(mut self, handle: Handle) -> Self {
+        self.handle = Some(handle);
 
         self
     }
@@ -119,6 +128,12 @@ impl TokenStore {
             }
         }
     }
+
+    pub fn shutdown(&self) {
+        if let Some(ref handle) = self.handle {
+            handle.shutdown();
+        }
+    }
 }
 
 impl TokenStore {
@@ -139,6 +154,7 @@ impl Default for TokenStore {
             // the two started_xxx dields are only required to show expiration timestamp in human readable format in dump
             started_at_instant: Instant::now(),
             started_at_utc: chrono::Utc::now(),
+            handle: None,
         }
     }
 }

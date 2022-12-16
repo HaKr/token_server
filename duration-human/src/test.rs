@@ -80,11 +80,9 @@ mod errors {
         match result {
             Err(DurationError::InvalidSyntax) => (),
             Err(err) => assert_eq!(contrived, 3, "Did not expect this error {err}"),
-            Ok(duration) => assert_eq!(
-                contrived, 3,
-                "Did not expect a valid duration {:#}",
-                duration
-            ),
+            Ok(duration) => {
+                assert_eq!(contrived, 3, "Did not expect a valid duration {duration:#}");
+            }
         }
     }
 }

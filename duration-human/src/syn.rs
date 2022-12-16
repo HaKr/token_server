@@ -48,8 +48,7 @@ impl Parse for DurationRangeArgument {
             "default" => Ok(Self::Default),
 
             _ => Err(input.error(format!(
-                "duration argument '{}' not recognized, use min, max and default",
-                name
+                "duration argument '{name}' not recognized, use min, max and default"
             ))),
         }
     }

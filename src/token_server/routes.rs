@@ -16,10 +16,10 @@ use super::{
 };
 
 pub async fn create_token(
-    extract::State(state): State<Arc<TokenStore>>,
+    extract::State(token_store): State<Arc<TokenStore>>,
     extract::Json(metadata): extract::Json<CreatePayload>,
 ) -> (StatusCode, String) {
-    state.create_token(metadata.meta).map_or_else(
+    token_store.create_token(metadata.meta).map_or_else(
         |_err| {
             ResponseFromResult::internal_server_error()
                 .log()
@@ -30,10 +30,10 @@ pub async fn create_token(
 }
 
 pub async fn update_token(
-    State(state): State<Arc<TokenStore>>,
+    State(token_store): State<Arc<TokenStore>>,
     extract::Json(payload): extract::Json<UpdatePayload>,
 ) -> Response {
-    let update_result = state.update_token(&payload.token, payload.meta);
+    let update_result = token_store.update_token(&payload.token, payload.meta);
 
     match update_result {
         Err(TokenUpdateFailed::RwLockNotAcquired) => ResponseFromResult::internal_server_error()
@@ -44,10 +44,10 @@ pub async fn update_token(
 }
 
 pub async fn remove_token(
-    State(state): State<Arc<TokenStore>>,
+    State(token_store): State<Arc<TokenStore>>,
     extract::Json(payload): extract::Json<RemovePayload>,
 ) -> Response {
-    state.remove_token(&payload.token).map_or_else(
+    token_store.remove_token(&payload.token).map_or_else(
         |_e| {
             ResponseFromResult::internal_server_error()
                 .log()
@@ -57,9 +57,14 @@ pub async fn remove_token(
     )
 }
 
-pub async fn dump_meta(State(state): State<Arc<TokenStore>>) -> StatusCode {
-    state.dump_meta();
+pub async fn dump_meta(State(token_store): State<Arc<TokenStore>>) -> StatusCode {
+    token_store.dump_meta();
 
+    StatusCode::ACCEPTED
+}
+
+pub async fn shutdown_server(extract::State(token_store): State<Arc<TokenStore>>) -> StatusCode {
+    token_store.shutdown();
     StatusCode::ACCEPTED
 }
 
