@@ -25,7 +25,7 @@ use duration_human::{DurationHuman, DurationHumanValidator};
 mod token_server;
 use token_server::{routes, TokenStore};
 
-assign_duration_range_validator!( TOKEN_LIFETIME_RANGE = {default: 2h, min: 1500ms, max: 60day});
+assign_duration_range_validator!( TOKEN_LIFETIME_RANGE = {default: 2h, min: 10min, max: 60day});
 assign_duration_range_validator!( PURGE_INTERVAL_RANGE = {min: 1500ms, default: 1min, max: 90min});
 
 #[derive(Parser)]
