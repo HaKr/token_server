@@ -1,19 +1,21 @@
-export class ProgressError {}
+import { Result } from "./std/result.ts";
 
-export class ProgressFetchFailed extends ProgressError {
-  constructor(public reason: ProgressError) {
-    super();
+export abstract class Failure {
+  constructor(public reason?: unknown) {}
+  toString(): string {
+    return this.reason instanceof Failure
+      ? this.reason.toString()
+      : `${
+        this.constructor.name.replace(/(\w)([A-Z])/g, (_sub, ...args) => {
+          const [a, b] = args as string[];
+          return `${a == "_" ? "" : a} ${b.toLowerCase()}`;
+        })
+      }${this.reason == undefined ? "" : `: ${this.reason}`}`;
   }
 }
-export class ProgressCreateFailed extends ProgressError {}
-export class ProgressRemoveFailed extends ProgressError {}
-export class ProgressGotInvalidToken extends ProgressError {}
-export class ProgressUpdateWithoutToken extends ProgressError {}
-export class ProgressRemoveWithoutToken extends ProgressError {}
-export class ProgressSkipThisOne extends ProgressError {}
 
-export class ProgressStopped extends ProgressError {
-  constructor(public reason: ProgressError) {
-    super();
-  }
-}
+export type SimulationResult = Result<void, SimulationFailed>;
+export class SimulationFailed extends Failure {}
+
+export class SimulationAborted extends SimulationFailed {}
+export class MissingToken extends SimulationFailed {}

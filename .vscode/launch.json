@@ -5,13 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "skipFiles": [
-                "<node_internals>/**"
+            "type": "pwa-node",
+            "program": "${workspaceFolder}/main.ts",
+            "cwd": "${workspaceFolder}",
+            "runtimeExecutable": "/home/harry/.cargo/bin/deno",
+            "runtimeArgs": [
+                "run",
+                "--inspect",
+                "--allow-all"
             ],
-            "program": "${file}"
+            "attachSimplePort": 9229
         }
     ]
 }

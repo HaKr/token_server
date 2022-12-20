@@ -21,9 +21,7 @@ export const metadata_collection = [
         week: 52
     },
 
-    {
-        invalid: true
-    },
+    null,
 
     {
         year: "2020",

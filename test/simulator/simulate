@@ -1,6 +1,9 @@
 #!/bin/sh
 clear
 
+do_error=""
+wait=""
+
 dumpit() {
     sleep 1
     echo request dump on server
@@ -9,10 +12,16 @@ dumpit() {
 
 if [ "$1" = "yes" ]; then
     dumpit &
+    wait="--random-wait 2"
+    
 fi
 
 for sim in A B C D E; do
-    deno run --allow-net src/simulation.ts $sim $1 &
+    if [ $sim = D ]; then
+        do_error=--include-errors
+    fi
+
+    deno run --allow-net --allow-env src/main.ts $sim $do_error $wait &
 done
 
 wait
