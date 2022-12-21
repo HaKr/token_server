@@ -5,7 +5,7 @@ import { Logging } from "./logging.ts";
 import { metadata_collection } from "./mock/metadata_collection.js";
 import { Scheduler } from "./scheduler.ts";
 import { Session } from "./session.ts";
-import { Err, Ok, Result } from "./std/result.ts";
+import { Err, Ok, Result } from "./deps.ts";
 import { Task } from "./tasks.ts";
 import { ClientError, NoConnection, TokenClient } from "./token_client.ts";
 
@@ -45,7 +45,11 @@ export class Simulator {
   ) {
     let index = 0;
     this.scheduler = new Scheduler(random_wait > 0);
-    for (const assignment of metadata_collection) {
+    for (
+      const assignment of metadata_collection.filter((candidate) =>
+        include_errors || candidate !== null
+      )
+    ) {
       assert(
         assignment == null || typeof assignment == "object",
         "Illegal input format",
@@ -75,30 +79,30 @@ export class Simulator {
   async run(): Promise<SimulationResult> {
     const iter = this.scheduler.iter();
 
-    let result;
+    let result: Result<boolean, SimulationFailed>;
     do {
-      result = await (await iter.next()).async_map_or_else<SimulationResult>(
-        () => Promise.resolve(Ok<boolean, SimulationFailed>(false)),
+      result = await (await iter.next()).mapOrElse<SimulationResult>(
+        () => Ok<boolean, SimulationFailed>(false),
         async (todo) => {
           const info = `${todo.session}  ${todo.task}`;
           return (await Simulator.taskMap[todo.task].call(this, todo.session))
-            .map_or_else(
+            .mapOrElse<Result<boolean, SimulationFailed>>(
               (err) => {
                 if (err instanceof SimulationAborted) {
-                  return Err(err);
+                  return Err<boolean, SimulationFailed>(err);
                 } else {
                   this.log_failure(info, err.toString());
                 }
-                return Ok(true);
+                return Ok<boolean, SimulationFailed>(true);
               },
               () => {
                 this.log_success(info);
-                return Ok(true);
+                return Ok<boolean, SimulationFailed>(true);
               },
             );
         },
       );
-    } while (result.unwrap_or(false));
+    } while (result.unwrapOr(false));
 
     return result.map((looping) => !looping);
   }
@@ -109,7 +113,7 @@ export class Simulator {
 
   protected async create(session: Session) {
     return (await this.client.create_token(session.meta))
-      .map((token) => session.create(token)).map_err(
+      .map((token) => session.create(token)).mapErr(
         Simulator.clientErrorToSimulationResult,
       );
   }
@@ -127,7 +131,7 @@ export class Simulator {
     forceMediaError: boolean,
   ): Promise<SimulationTaskResult> {
     return session.token_or_else<SimulationFailed>(() => new MissingToken())
-      .async_map_or_else<SimulationTaskResult>(
+      .mapOrElse<SimulationTaskResult>(
         Err,
         async (token) =>
           (await this.client.update_token(
@@ -137,30 +141,30 @@ export class Simulator {
           ))
             .map((update_result) =>
               session.update(update_result.token, update_result.meta)
-            ).map_err(Simulator.clientErrorToSimulationResult),
+            ).mapErr(Simulator.clientErrorToSimulationResult),
       );
   }
 
   protected refresh(session: Session): Promise<SimulationTaskResult> {
     return session.token_or_else<SimulationFailed>(() => new MissingToken())
-      .async_map_or_else<SimulationTaskResult>(
+      .mapOrElse<SimulationTaskResult>(
         Err,
         async (token) =>
           (await this.client.update_token(token))
             .map((update_result) =>
               session.update(update_result.token, update_result.meta)
-            ).map_err(Simulator.clientErrorToSimulationResult),
+            ).mapErr(Simulator.clientErrorToSimulationResult),
       );
   }
 
   protected remove(session: Session): Promise<SimulationTaskResult> {
     return session.token_or_else<SimulationFailed>(() => new MissingToken())
-      .async_map_or_else<SimulationTaskResult>(
+      .mapOrElse<SimulationTaskResult>(
         Err,
         async (token) =>
           (await this.client.delete_token(token))
             .map(() => session.clear_token())
-            .map_err(Simulator.clientErrorToSimulationResult),
+            .mapErr(Simulator.clientErrorToSimulationResult),
       );
   }
 
@@ -171,7 +175,7 @@ export class Simulator {
   private log_failure(what: string, why: string) {
     Simulator.LOGGER.error(
       `${this.formatLabel()} ${what} failed${
-        why.length > 0 ? `: ${maxWidth(why, 100)}` : ""
+        why.length > 0 ? `: ${maxWidth(why, 113)}` : ""
       }`,
     );
   }

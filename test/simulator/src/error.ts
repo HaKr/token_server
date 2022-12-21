@@ -1,4 +1,4 @@
-import { Result } from "./std/result.ts";
+import { Result } from "./deps.ts";
 
 export abstract class Failure {
   constructor(public reason?: unknown) {}

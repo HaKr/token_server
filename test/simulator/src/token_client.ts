@@ -1,5 +1,5 @@
 import { Meta, TokenUpdateResponseBody, TokenUpdateResult } from "./api.ts";
-import { Err, Ok, Result } from "./std/result.ts";
+import { Err, Ok, Result } from "./deps.ts";
 import { Logging } from "./logging.ts";
 import { Failure } from "./error.ts";
 
@@ -28,9 +28,12 @@ export class TokenClient {
       {
         method: "GET",
       },
-    )).map_or_else(
-      (err) => err instanceof UrlNotFound ? Ok(true) : Err(err),
-      (response) => Err(new UnexpectedPingResult(response)),
+    )).mapOrElse(
+      (err) =>
+        err instanceof UrlNotFound
+          ? Ok<true, ClientError>(true)
+          : Err<true, ClientError>(err),
+      (response) => Err<true, ClientError>(new UnexpectedPingResult(response)),
     );
   }
 
@@ -67,14 +70,14 @@ export class TokenClient {
         body: JSON.stringify({ token, meta }),
       },
     ))
-      .map_or_else<ClientResult<TokenUpdateResult>>(Err, (response) => {
+      .mapOrElse<ClientResult<TokenUpdateResult>>(Err, (response) => {
         if (response.Ok) {
-          return Ok(response.Ok);
+          return Ok<TokenUpdateResult, ClientError>(response.Ok);
         } else {
           if (response.Err! == "InvalidToken") {
-            return Err(new InvalidToken());
+            return Err<TokenUpdateResult, ClientError>(new InvalidToken());
           } else {
-            return Err(
+            return Err<TokenUpdateResult, ClientError>(
               new UnexpectedUpdateResponse(response.Err),
             );
           }
@@ -103,10 +106,10 @@ export class TokenClient {
       `${options.method} ${url} ${options.body}`,
     );
     const result: FutureClientResult<T> = (await this.fetch(url, options))
-      .async_and_then(async (response) => {
+      .andThen(async (response) => {
         if (response.headers.get("content-type") == "application/json") {
           return Ok<T, ClientError>(await response.json());
-        } else {return Err(
+        } else {return Err<T, ClientError>(
             new UnsupportedContentTypeResponse(
               response.headers.get("content-type"),
             ),
@@ -125,7 +128,7 @@ export class TokenClient {
       `${options.method} ${url} ${options.body}`,
     );
 
-    const result = await (await this.fetch(url, options)).async_and_then(async (
+    const result = await (await this.fetch(url, options)).andThen(async (
       response,
     ) => Ok<string, ClientError>(await response.text()));
 

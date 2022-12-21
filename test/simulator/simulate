@@ -16,12 +16,14 @@ if [ "$1" = "yes" ]; then
     
 fi
 
-for sim in A B C D E; do
+for sim in A B C D E ; do
     if [ $sim = D ]; then
         do_error=--include-errors
+    else 
+        do_error=""
     fi
 
-    deno run --allow-net --allow-env src/main.ts $sim $do_error $wait &
+    LOG=tokenclient=off,simulator=debug,scheduler=off deno run --allow-net --allow-env src/main.ts --name $sim $do_error $wait &
 done
 
 wait

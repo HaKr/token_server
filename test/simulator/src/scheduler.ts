@@ -1,6 +1,6 @@
 import { Logging } from "./logging.ts";
 import { Session } from "./session.ts";
-import { Option, Some } from "./std/option.ts";
+import { Option, Some } from "./deps.ts";
 import { Task } from "./tasks.ts";
 import { ToDo } from "./todo.ts";
 
@@ -28,7 +28,7 @@ export class Scheduler {
         let todo;
         do {
           todo = iterator.next();
-          if (todo.done) return Promise.resolve(Option.None<ToDo>());
+          if (todo.done) return Promise.resolve(Option.none<ToDo>());
         } while (!todo.value.shouldExecute());
         const now = Date.now();
         if (this.doSleep && todo.value.when > now) {
