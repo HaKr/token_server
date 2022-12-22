@@ -1,5 +1,5 @@
 import { CommandLine, HelpWasDisplayed } from "./clap.ts";
-import { None, Some } from "./rusty/option.ts";
+import { None } from "./deps.ts";
 import { Simulator } from "./simulator.ts";
 
 type Options = {

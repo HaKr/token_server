@@ -200,7 +200,7 @@ function maxWidth(str: string, width: number) {
 function* generate_delays(maxSeconds: number) {
   yield 0;
   while (true) {
-    yield Math.round(Math.random() * maxSeconds * 1000);
+    yield maxSeconds == 0 ? 1 : Math.round(Math.random() * maxSeconds * 1000);
   }
 }
 
