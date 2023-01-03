@@ -56,7 +56,7 @@ CommandLine.parse(options, showHelp)
 
 function showHelp(opts: Options) {
   console.log(`  
-Usage: LOG=tokenclient=[LEVEL],simulator=[LEVEL],scheduler=[LEVEL] deno run --allow-net --allow-env src/main.ts [OPTIONS]
+Usage: LOG=[default LEVEL],tokenclient=[LEVEL],simulator=[LEVEL],scheduler=[LEVEL] deno run --allow-net --allow-env src/main.ts [OPTIONS]
 
 LEVEL = trace | debug | info | warn | error | off
   Verbosity of the specified module
@@ -68,7 +68,7 @@ Options:
   --name STRING
       Optional name for the simulation, default: sim (${opts.name})
 
-  --include-error 
+  --include-errors 
       Add this argument to generate some errors (${opts.include_errors})
 
   --random-wait INTEGER

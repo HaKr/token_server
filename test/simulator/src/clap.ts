@@ -21,7 +21,7 @@ export class CommandLine {
     showHelp: (opts: O) => void,
   ): Result<O, ParseError> {
     const last = None<string>();
-    let result = Ok<boolean, ParseError>(true);
+    let result = Ok<O, ParseError>(def);
     (def as Options).help = false;
     const iter = Deno.args[Symbol.iterator]();
     for (
@@ -34,7 +34,7 @@ export class CommandLine {
         const name = arg.slice(2).replace("-", "_");
         if (last.isSome()) {
           last.map((arg) => {
-            result = Err<boolean, ParseError>(new MissingA_ValueFor(arg));
+            result = Err<O, ParseError>(new MissingA_ValueFor(arg));
           });
         } else {
           if ((def as Options)[name] == undefined) {
@@ -48,7 +48,7 @@ export class CommandLine {
         }
       } else {
         result = last.okOrElse(() => new DanglingValue(arg))
-          .andThen((name): Result<boolean, ParseError> => {
+          .andThen((name): Result<O, ParseError> => {
             if (typeof (def as Options)[name] == "boolean") {
               return Err(new MustHaveNoValue(name));
             } else {
@@ -56,13 +56,13 @@ export class CommandLine {
                 ? Number.parseInt(arg, 10) || 0
                 : arg;
               last.take();
-              return Ok(true);
+              return Ok(def);
             }
           });
       }
     }
 
-    return result.andThen<O>(() => {
+    return result.andThen(() => {
       const checkLast: Result<O, ParseError> = last.isSome()
         ? Err(new NotA_Switch(last.unwrapOr("")))
         : Ok(def);
@@ -76,7 +76,7 @@ export class CommandLine {
           showHelp(opts);
           return Err(new HelpWasDisplayed());
         }
-        return Ok(res as O);
+        return Ok(opts);
       });
     }).mapErr((err): ParseError => {
       if (err instanceof HelpWasDisplayed) return err;

@@ -1,3 +1,5 @@
+import { Option, optionFrom } from "./deps.ts";
+
 enum Level {
   NONE,
   ERROR,
@@ -6,6 +8,15 @@ enum Level {
   DEBUG,
   TRACE,
 }
+
+const levelLabel = {
+  [Level.NONE]: "",
+  [Level.ERROR]: "ERR",
+  [Level.WARNING]: "WRN",
+  [Level.INFO]: "INF",
+  [Level.DEBUG]: "DBG",
+  [Level.TRACE]: "TRC",
+};
 
 export class Logging {
   static levelFromName: { [key: string]: Level } = {
@@ -19,20 +30,29 @@ export class Logging {
   static level = Level.INFO;
   static levelMap: { [key: string]: Level } = {};
 
-  private constructor(private level: Level) {}
+  private constructor(private module: string) {}
 
   public static configure(levels: string) {
     levels.split(",").forEach((assignment) => {
-      const [name, levelName] = assignment.split("=");
-      Logging.levelMap[name.toLowerCase()] = Logging.levelFromName[levelName] ||
-        Logging.level;
+      const [name, levelName] = levelDefinition(assignment);
+      levelName.mapOrElse(
+        () => Logging.level = Logging.levelFromName[name] || Level.INFO,
+        (levelName) =>
+          Logging.levelMap[name.toLowerCase()] =
+            Logging.levelFromName[levelName] ||
+            Logging.level,
+      );
     });
   }
 
   public static for(module: string): Logging {
-    const mappedLevel = Logging.levelMap[module.toLowerCase()];
+    return new Logging(module);
+  }
 
-    return new Logging(mappedLevel != undefined ? mappedLevel : Logging.level);
+  static levelFor(module: string) {
+    return optionFrom(Logging.levelMap[module.toLowerCase()]).unwrapOrElse(() =>
+      Logging.level
+    );
   }
 
   error(...args: unknown[]) {
@@ -56,11 +76,16 @@ export class Logging {
   }
 
   private log(level: Level, ...args: unknown[]) {
-    if (this.level >= level) {
-      console.log(...args);
+    if (Logging.levelFor(this.module) >= level) {
+      console.log(`${levelLabel[level]}-[${this.module.padEnd(11)}]`, ...args);
     }
     return args;
   }
 }
 
 Logging.configure(Deno.env.get("LOG") || "");
+
+function levelDefinition(assignment: string): [string, Option<string>] {
+  const [moduleName, level] = assignment.split("=");
+  return [moduleName, optionFrom(level)];
+}

@@ -106,7 +106,7 @@ export class TokenClient {
     url: string,
     options: RequestInit,
   ): FutureClientResult<T> {
-    const event = TokenClient.LOGGER.trace(
+    const event = TokenClient.LOGGER.debug(
       `${options.method} ${url} ${options.body}`,
     );
     const result: FutureClientResult<T> = this.fetch(url, options)
@@ -120,7 +120,7 @@ export class TokenClient {
           );}
       });
 
-    result.then((result) => TokenClient.LOGGER.trace(...event, ` ->`, result));
+    result.map((result) => TokenClient.LOGGER.trace(...event, ` ->`, result));
 
     return result;
   }

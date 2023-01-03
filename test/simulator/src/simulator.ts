@@ -177,7 +177,7 @@ export class Simulator {
   private logFailure(what: string, why: string) {
     Simulator.LOGGER.error(
       `${this.formatLabel()} ${what} failed${
-        why.length > 0 ? `: ${maxWidth(why, 113)}` : ""
+        why.length > 0 ? `: ${maxWidth(why, 94)}` : ""
       }`,
     );
   }

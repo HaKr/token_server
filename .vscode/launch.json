@@ -7,8 +7,10 @@
         {
             "request": "launch",
             "name": "Launch Program",
-            "type": "pwa-node",
-            "program": "${workspaceFolder}/main.ts",
+            "type": "node",
+            "program": "${workspaceFolder}/test/simulator/src/main.ts",
+            "args": ["--include-errors"],
+            "env": {"LOG": "debug"},
             "cwd": "${workspaceFolder}",
             "runtimeExecutable": "/home/harry/.cargo/bin/deno",
             "runtimeArgs": [
