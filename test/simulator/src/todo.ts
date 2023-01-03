@@ -9,7 +9,7 @@ export class ToDo {
   ) {}
 
   shouldExecute() {
-    const hasToken = this.session.has_token();
+    const hasToken = this.session.hasToken();
     return this.when < 1 ? !hasToken : hasToken;
   }
 }

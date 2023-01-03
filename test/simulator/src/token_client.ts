@@ -1,10 +1,10 @@
 import { Meta, TokenUpdateResponseBody, TokenUpdateResult } from "./api.ts";
-import { Err, Ok, Result } from "./deps.ts";
+import { Err, Ok, Result, resultFrom, ResultPromise } from "./deps.ts";
 import { Logging } from "./logging.ts";
 import { Failure } from "./error.ts";
 
 export type ClientResult<T> = Result<T, ClientError>;
-export type FutureClientResult<T> = Promise<ClientResult<T>>;
+export type FutureClientResult<T> = ResultPromise<T, ClientError>;
 
 const CONTENT_JSON = {
   "Content-Type": "application/json",
@@ -22,55 +22,58 @@ export class TokenClient {
   static ENDPOINT_PING = `${TokenClient.SERVER}/ping`;
   static ENDPOINT_SHUTDOWN = `${TokenClient.SERVER}/shutdown`;
 
-  public async ping(): FutureClientResult<true> {
-    return (await this.fetch(
-      TokenClient.ENDPOINT_PING,
-      {
-        method: "GET",
-      },
-    )).mapOrElse(
-      (err) =>
-        err instanceof UrlNotFound
-          ? Ok<true, ClientError>(true)
-          : Err<true, ClientError>(err),
-      (response) => Err<true, ClientError>(new UnexpectedPingResult(response)),
+  public ping(): FutureClientResult<true> {
+    return resultFrom(
+      this.fetch(
+        TokenClient.ENDPOINT_PING,
+        {
+          method: "GET",
+        },
+      ).mapOrElse(
+        (err) =>
+          err instanceof UrlNotFound
+            ? Ok<true, ClientError>(true)
+            : Err<true, ClientError>(err),
+        (response) =>
+          Err<true, ClientError>(new UnexpectedPingResult(response)),
+      ),
     );
   }
 
-  public async create_token(meta: Meta): FutureClientResult<string> {
-    return (await this.fetch_text(
+  public createToken(meta: Meta): FutureClientResult<string> {
+    return this.fetchText(
       TokenClient.ENDPOINT_TOKEN,
       {
         method: "POST",
         headers: CONTENT_JSON,
         body: JSON.stringify({ meta }),
       },
-    ));
+    );
   }
 
-  public async shutdown(): FutureClientResult<string> {
-    return (await this.fetch_text(
+  public shutdown(): FutureClientResult<string> {
+    return this.fetchText(
       TokenClient.ENDPOINT_SHUTDOWN,
       {
         method: "GET",
       },
-    ));
+    );
   }
 
-  public async update_token(
+  public updateToken(
     token: string,
     meta?: Meta,
     forceMediaError = false,
   ): FutureClientResult<TokenUpdateResult> {
-    return (await this.fetch_json<TokenUpdateResponseBody>(
-      TokenClient.ENDPOINT_TOKEN,
-      {
-        method: "PUT",
-        headers: forceMediaError ? CONTENT_XML : CONTENT_JSON,
-        body: JSON.stringify({ token, meta }),
-      },
-    ))
-      .mapOrElse<ClientResult<TokenUpdateResult>>(Err, (response) => {
+    return resultFrom(
+      this.fetchJson<TokenUpdateResponseBody>(
+        TokenClient.ENDPOINT_TOKEN,
+        {
+          method: "PUT",
+          headers: forceMediaError ? CONTENT_XML : CONTENT_JSON,
+          body: JSON.stringify({ token, meta }),
+        },
+      ).mapOrElse<ClientResult<TokenUpdateResult>>(Err, (response) => {
         if (response.Ok) {
           return Ok<TokenUpdateResult, ClientError>(response.Ok);
         } else {
@@ -82,30 +85,31 @@ export class TokenClient {
             );
           }
         }
-      });
+      }),
+    );
   }
 
-  public async delete_token(
+  public deleteToken(
     token: string,
   ): FutureClientResult<string> {
-    return (await this.fetch_text(
+    return this.fetchText(
       TokenClient.ENDPOINT_TOKEN,
       {
         method: "DELETE",
         headers: CONTENT_JSON,
         body: JSON.stringify({ token }),
       },
-    ));
+    );
   }
 
-  private async fetch_json<T extends Meta = Meta>(
+  private fetchJson<T extends Meta = Meta>(
     url: string,
     options: RequestInit,
   ): FutureClientResult<T> {
     const event = TokenClient.LOGGER.trace(
       `${options.method} ${url} ${options.body}`,
     );
-    const result: FutureClientResult<T> = (await this.fetch(url, options))
+    const result: FutureClientResult<T> = this.fetch(url, options)
       .andThen(async (response) => {
         if (response.headers.get("content-type") == "application/json") {
           return Ok<T, ClientError>(await response.json());
@@ -116,11 +120,11 @@ export class TokenClient {
           );}
       });
 
-    TokenClient.LOGGER.trace(...event, ` ->`, await result);
+    result.then((result) => TokenClient.LOGGER.trace(...event, ` ->`, result));
 
     return result;
   }
-  private async fetch_text(
+  private fetchText(
     url: string,
     options: RequestInit,
   ): FutureClientResult<string> {
@@ -128,9 +132,10 @@ export class TokenClient {
       `${options.method} ${url} ${options.body}`,
     );
 
-    const result = await (await this.fetch(url, options)).andThen(async (
-      response,
-    ) => Ok<string, ClientError>(await response.text()));
+    const result = this.fetch(url, options)
+      .andThen(async (response) =>
+        Ok<string, ClientError>(await response.text())
+      );
 
     TokenClient.LOGGER.trace(...event, ` ->`, result);
     return result;
@@ -140,38 +145,40 @@ export class TokenClient {
     url: string,
     options: RequestInit,
   ): FutureClientResult<Response> {
-    return fetch(url, options)
-      .then(async (response): FutureClientResult<Response> => {
-        if (response.ok) {
-          return Ok(response);
-        } else {
-          switch (response.status) {
-            case 400:
-              return Err(new BadRequest(await response.text()));
-            case 404:
-              return Err(new UrlNotFound(url));
-            case 405:
-              return Err(new MethodNotAllowed(options.method!));
-            case 415:
-              return Err(new UnsupportedMediaType(await response.text()));
-            case 422:
-              return Err(new UnprocessableEntity(await response.text()));
-            default:
-              return Err(
-                new UnrecognizedResponse(
-                  response.status,
-                  response.statusText,
-                  await response.text(),
-                ),
-              );
+    return resultFrom(
+      fetch(url, options)
+        .then(async (response): Promise<ClientResult<Response>> => {
+          if (response.ok) {
+            return Ok(response);
+          } else {
+            switch (response.status) {
+              case 400:
+                return Err(new BadRequest(await response.text()));
+              case 404:
+                return Err(new UrlNotFound(url));
+              case 405:
+                return Err(new MethodNotAllowed(options.method!));
+              case 415:
+                return Err(new UnsupportedMediaType(await response.text()));
+              case 422:
+                return Err(new UnprocessableEntity(await response.text()));
+              default:
+                return Err(
+                  new UnrecognizedResponse(
+                    response.status,
+                    response.statusText,
+                    await response.text(),
+                  ),
+                );
+            }
           }
-        }
-      })
-      .catch((err): ClientResult<Response> => {
-        return err instanceof TypeError
-          ? Err(new NoConnection())
-          : Err(new UnrecognizedFailure(err));
-      });
+        })
+        .catch((err): ClientResult<Response> => {
+          return err instanceof TypeError
+            ? Err(new NoConnection())
+            : Err(new UnrecognizedFailure(err));
+        }),
+    );
   }
 }
 

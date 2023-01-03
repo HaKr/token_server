@@ -1,4 +1,4 @@
-import { Err, Ok, Option, Result } from "./deps.ts";
+import { Err, None, Ok, Result } from "./deps.ts";
 
 type Options = { [key: string]: string | number | boolean };
 
@@ -20,7 +20,7 @@ export class CommandLine {
     def: O,
     showHelp: (opts: O) => void,
   ): Result<O, ParseError> {
-    const last = Option.none<string>();
+    const last = None<string>();
     let result = Ok<boolean, ParseError>(true);
     (def as Options).help = false;
     const iter = Deno.args[Symbol.iterator]();
@@ -32,30 +32,30 @@ export class CommandLine {
       const arg = next_arg.value;
       if (arg.startsWith("--")) {
         const name = arg.slice(2).replace("-", "_");
-        result = last.mapOrElse(
-          () => {
-            if ((def as Options)[name] == undefined) {
-              return Err(new UnknownArgument(name));
-            }
-            if (typeof (def as Options)[name] == "boolean") {
-              (def as Options)[name] = true;
-            } else {
-              last.insert(name);
-            }
-            return Ok(true);
-          },
-          (arg) => Err<boolean, ParseError>(new MissingA_ValueFor(arg)),
-        );
+        if (last.isSome()) {
+          last.map((arg) => {
+            result = Err<boolean, ParseError>(new MissingA_ValueFor(arg));
+          });
+        } else {
+          if ((def as Options)[name] == undefined) {
+            result = Err(new UnknownArgument(name));
+          }
+          if (typeof (def as Options)[name] == "boolean") {
+            (def as Options)[name] = true;
+          } else {
+            last.insert(name);
+          }
+        }
       } else {
         result = last.okOrElse(() => new DanglingValue(arg))
-          .andThen<true>((name) => {
+          .andThen((name): Result<boolean, ParseError> => {
             if (typeof (def as Options)[name] == "boolean") {
               return Err(new MustHaveNoValue(name));
             } else {
               (def as Options)[name] = typeof (def as Options)[name] == "number"
                 ? Number.parseInt(arg, 10) || 0
                 : arg;
-              last.clear();
+              last.take();
               return Ok(true);
             }
           });
@@ -63,10 +63,11 @@ export class CommandLine {
     }
 
     return result.andThen<O>(() => {
-      return last.mapOrElse(
-        () => Ok<O, ParseError>(def),
-        (name) => Err<O, ParseError>(new NotA_Switch(name)),
-      ).andThen((opts) => {
+      const checkLast: Result<O, ParseError> = last.isSome()
+        ? Err(new NotA_Switch(last.unwrapOr("")))
+        : Ok(def);
+
+      return checkLast.andThen((opts): Result<O, ParseError> => {
         const res = opts as { help?: boolean };
 
         const needHelp = res.help;
@@ -77,12 +78,12 @@ export class CommandLine {
         }
         return Ok(res as O);
       });
-    }).mapErr((err) => {
+    }).mapErr((err): ParseError => {
       if (err instanceof HelpWasDisplayed) return err;
 
       console.error("\n\n", err.toString(), "\n");
       showHelp(def);
-      return new HelpWasDisplayed() as ParseError;
+      return new HelpWasDisplayed();
     });
   }
 }

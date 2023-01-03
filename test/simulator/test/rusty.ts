@@ -16,7 +16,7 @@ Deno.test("map_or", () => {
   const k = 21;
 
   const [x, y] = ([Ok("foo"), Err("foobar")] as Result<string, string>[]).map(
-    (res) => res.mapOr(k * 3, (v) => v.length),
+    (res) => res.mapOrElse(() => k * 3, (v) => v.length),
   );
   assertEquals(x, 3);
   assertEquals(y, 63);

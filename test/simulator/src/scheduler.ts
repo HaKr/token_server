@@ -1,6 +1,6 @@
 import { Logging } from "./logging.ts";
 import { Session } from "./session.ts";
-import { Option, Some } from "./deps.ts";
+import { None, optionFrom, Some } from "./deps.ts";
 import { Task } from "./tasks.ts";
 import { ToDo } from "./todo.ts";
 
@@ -24,23 +24,24 @@ export class Scheduler {
     const iterator = this.tasks[Symbol.iterator]();
 
     return {
-      next: async () => {
-        let todo;
-        do {
-          todo = iterator.next();
-          if (todo.done) return Promise.resolve(Option.none<ToDo>());
-        } while (!todo.value.shouldExecute());
-        const now = Date.now();
-        if (this.doSleep && todo.value.when > now) {
-          const ms = todo.value.when - now;
-          Scheduler.LOGGER.debug(
-            `Wait ${ms}ms before ${todo.value.task} on ${todo.value.session}`,
-          );
-          await this.wait(ms);
-        }
+      next: () =>
+        optionFrom((async () => {
+          let todo;
+          do {
+            todo = iterator.next();
+            if (todo.done) return Promise.resolve(None<ToDo>());
+          } while (!todo.value.shouldExecute());
+          const now = Date.now();
+          if (this.doSleep && todo.value.when > now) {
+            const ms = todo.value.when - now;
+            Scheduler.LOGGER.trace(
+              `Wait ${ms}ms before ${todo.value.task} on ${todo.value.session}`,
+            );
+            await this.wait(ms);
+          }
 
-        return Some(todo.value);
-      },
+          return Some(todo.value);
+        })()),
     };
   }
 

@@ -1,10 +1,10 @@
 import { Meta } from "./api.ts";
-import { Option, Result } from "./deps.ts";
+import { None, Result } from "./deps.ts";
 
 export class Session {
   static count = 1;
 
-  token = Option.none<string>();
+  token = None<string>();
   public index = Session.count++;
 
   constructor(private meta_: Meta) {}
@@ -17,11 +17,11 @@ export class Session {
     return this.meta_;
   }
 
-  clear_token() {
-    this.token.clear();
+  clearToken() {
+    this.token.take();
   }
 
-  has_token() {
+  hasToken() {
     return this.token.isSome();
   }
 
@@ -30,13 +30,13 @@ export class Session {
     this.meta_ = meta;
   }
 
-  token_or_else<F>(err_mapper: () => F): Result<string, F> {
+  tokenOrElse<F>(err_mapper: () => F): Result<string, F> {
     return this.token.okOrElse(err_mapper);
   }
 
   toString() {
     return (`[(${
-      this.token.mapOr(" no  ", (_) => "token").unwrapOr(
+      this.token.mapOrElse(() => " no  ", (_) => "token").unwrapOr(
         "impossible",
       )
     }) ` +
