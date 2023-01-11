@@ -1,11 +1,14 @@
 export {
   Err,
+  ErrPromise,
   None,
+  NonePromise,
   Ok,
+  OkPromise,
   type Option,
-  optionFrom,
+  type OptionPromise,
   type Result,
-  resultFrom,
   type ResultPromise,
   Some,
-} from "https://deno.land/x/rusty_core@v1.1.20/mod.ts";
+  SomePromise,
+} from "file:///home/harry/projects/rusty-core/mod.ts"; // "https://deno.land/x/rusty_core@v1.1.22/mod.ts";

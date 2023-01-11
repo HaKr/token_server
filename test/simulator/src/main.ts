@@ -1,4 +1,4 @@
-import { CommandLine, HelpWasDisplayed } from "./clap.ts";
+import { CommandLine } from "./clap.ts";
 import { None } from "./deps.ts";
 import { Simulator } from "./simulator.ts";
 
@@ -17,10 +17,7 @@ const options: Options = {
 };
 
 CommandLine.parse(options, showHelp)
-  .mapOrElse(
-    (err) => {
-      if (!(err instanceof HelpWasDisplayed)) console.error(err.toString());
-    },
+  .map(
     async (options) => {
       Simulator.LOGGER.debug(options);
 
@@ -38,16 +35,11 @@ CommandLine.parse(options, showHelp)
         ));
       }
 
-      await simulator.run()
-        .then(
-          (res) => {
-            res.mapOrElse(
-              (err) => Simulator.LOGGER.error(err),
-              () =>
-                Simulator.LOGGER.info(`Simulation ${options.name} finished`),
-            );
-          },
+      await simulator
+        .run()
+        .mapOrElse(
           (err) => Simulator.LOGGER.error(err),
+          () => Simulator.LOGGER.info(`Simulation ${options.name} finished`),
         );
 
       handle.map(clearTimeout);

@@ -1,5 +1,5 @@
 import { Meta, TokenUpdateResponseBody, TokenUpdateResult } from "./api.ts";
-import { Err, Ok, Result, resultFrom, ResultPromise } from "./deps.ts";
+import { Err, Ok, Result, ResultPromise } from "./deps.ts";
 import { Logging } from "./logging.ts";
 import { Failure } from "./error.ts";
 
@@ -23,20 +23,17 @@ export class TokenClient {
   static ENDPOINT_SHUTDOWN = `${TokenClient.SERVER}/shutdown`;
 
   public ping(): FutureClientResult<true> {
-    return resultFrom(
-      this.fetch(
-        TokenClient.ENDPOINT_PING,
-        {
-          method: "GET",
-        },
-      ).mapOrElse(
-        (err) =>
-          err instanceof UrlNotFound
-            ? Ok<true, ClientError>(true)
-            : Err<true, ClientError>(err),
-        (response) =>
-          Err<true, ClientError>(new UnexpectedPingResult(response)),
-      ),
+    return this.fetch(
+      TokenClient.ENDPOINT_PING,
+      {
+        method: "GET",
+      },
+    ).mapResult(
+      (err) =>
+        err instanceof UrlNotFound
+          ? Ok<true, ClientError>(true)
+          : Err<true, ClientError>(err),
+      (response) => Err<true, ClientError>(new UnexpectedPingResult(response)),
     );
   }
 
@@ -65,28 +62,26 @@ export class TokenClient {
     meta?: Meta,
     forceMediaError = false,
   ): FutureClientResult<TokenUpdateResult> {
-    return resultFrom(
-      this.fetchJson<TokenUpdateResponseBody>(
-        TokenClient.ENDPOINT_TOKEN,
-        {
-          method: "PUT",
-          headers: forceMediaError ? CONTENT_XML : CONTENT_JSON,
-          body: JSON.stringify({ token, meta }),
-        },
-      ).mapOrElse<ClientResult<TokenUpdateResult>>(Err, (response) => {
-        if (response.Ok) {
-          return Ok<TokenUpdateResult, ClientError>(response.Ok);
+    return this.fetchJson<TokenUpdateResponseBody>(
+      TokenClient.ENDPOINT_TOKEN,
+      {
+        method: "PUT",
+        headers: forceMediaError ? CONTENT_XML : CONTENT_JSON,
+        body: JSON.stringify({ token, meta }),
+      },
+    ).mapResult<ClientResult<TokenUpdateResult>>(Err, (response) => {
+      if (response.Ok) {
+        return Ok<TokenUpdateResult, ClientError>(response.Ok);
+      } else {
+        if (response.Err! == "InvalidToken") {
+          return Err<TokenUpdateResult, ClientError>(new InvalidToken());
         } else {
-          if (response.Err! == "InvalidToken") {
-            return Err<TokenUpdateResult, ClientError>(new InvalidToken());
-          } else {
-            return Err<TokenUpdateResult, ClientError>(
-              new UnexpectedUpdateResponse(response.Err),
-            );
-          }
+          return Err<TokenUpdateResult, ClientError>(
+            new UnexpectedUpdateResponse(response.Err),
+          );
         }
-      }),
-    );
+      }
+    });
   }
 
   public deleteToken(
@@ -109,10 +104,10 @@ export class TokenClient {
     const event = TokenClient.LOGGER.debug(
       `${options.method} ${url} ${options.body}`,
     );
-    const result: FutureClientResult<T> = this.fetch(url, options)
+    const result: FutureClientResult<Meta> = this.fetch(url, options)
       .andThen(async (response) => {
         if (response.headers.get("content-type") == "application/json") {
-          return Ok<T, ClientError>(await response.json());
+          return Ok<Meta, ClientError>(await response.json());
         } else {return Err<T, ClientError>(
             new UnsupportedContentTypeResponse(
               response.headers.get("content-type"),
@@ -122,7 +117,7 @@ export class TokenClient {
 
     result.map((result) => TokenClient.LOGGER.trace(...event, ` ->`, result));
 
-    return result;
+    return result as FutureClientResult<T>;
   }
   private fetchText(
     url: string,
@@ -133,9 +128,7 @@ export class TokenClient {
     );
 
     const result = this.fetch(url, options)
-      .andThen(async (response) =>
-        Ok<string, ClientError>(await response.text())
-      );
+      .map(async (response) => await response.text());
 
     TokenClient.LOGGER.trace(...event, ` ->`, result);
     return result;
@@ -145,7 +138,7 @@ export class TokenClient {
     url: string,
     options: RequestInit,
   ): FutureClientResult<Response> {
-    return resultFrom(
+    return Ok(
       fetch(url, options)
         .then(async (response): Promise<ClientResult<Response>> => {
           if (response.ok) {

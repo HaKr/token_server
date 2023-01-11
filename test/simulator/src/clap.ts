@@ -17,74 +17,80 @@ export abstract class ParseError {
 
 export class CommandLine {
   static parse<O extends Options>(
-    def: O,
+    optionDefaults: O,
     showHelp: (opts: O) => void,
   ): Result<O, ParseError> {
-    const last = None<string>();
-    let result = Ok<O, ParseError>(def);
-    (def as Options).help = false;
-    const iter = Deno.args[Symbol.iterator]();
+    const lastArgumentName = None<string>();
+    let result: Result<Options, ParseError> = Ok(optionDefaults as Options);
+    (optionDefaults as Options).help = false;
+    const argumentIterator = Deno.args[Symbol.iterator]();
     for (
-      let next_arg = iter.next();
-      result.isOk() && !next_arg.done;
-      next_arg = iter.next()
+      let nextArgument = argumentIterator.next();
+      result.isOk() && !nextArgument.done;
+      nextArgument = argumentIterator.next()
     ) {
-      const arg = next_arg.value;
-      if (arg.startsWith("--")) {
-        const name = arg.slice(2).replace("-", "_");
-        if (last.isSome()) {
-          last.map((arg) => {
-            result = Err<O, ParseError>(new MissingA_ValueFor(arg));
-          });
-        } else {
-          if ((def as Options)[name] == undefined) {
-            result = Err(new UnknownArgument(name));
-          }
-          if (typeof (def as Options)[name] == "boolean") {
-            (def as Options)[name] = true;
-          } else {
-            last.insert(name);
-          }
-        }
-      } else {
-        result = last.okOrElse(() => new DanglingValue(arg))
-          .andThen((name): Result<O, ParseError> => {
-            if (typeof (def as Options)[name] == "boolean") {
-              return Err(new MustHaveNoValue(name));
-            } else {
-              (def as Options)[name] = typeof (def as Options)[name] == "number"
-                ? Number.parseInt(arg, 10) || 0
-                : arg;
-              last.take();
-              return Ok(def);
+      const argument = nextArgument.value;
+      if (argument.startsWith("--")) {
+        const name = argument.slice(2).replace("-", "_");
+        lastArgumentName.mapOrElse(
+          () => {
+            if ((optionDefaults as Options)[name] == undefined) {
+              result = Err<O, ParseError>(new UnknownArgument(name));
             }
-          });
+            if (typeof (optionDefaults as Options)[name] == "boolean") {
+              (optionDefaults as Options)[name] = true;
+            } else {
+              lastArgumentName.insert(name);
+            }
+          },
+          (arg) => {
+            result = Err<O, ParseError>(new MissingA_ValueFor(arg));
+          },
+        );
+      } else { // does not start with --
+        lastArgumentName.mapOrElse(
+          () => {
+            result = Err(new DanglingValue(argument));
+          },
+          (name) => {
+            if (typeof (optionDefaults as Options)[name] == "boolean") {
+              result = Err(new MustHaveNoValue(name));
+            } else {
+              (optionDefaults as Options)[name] =
+                typeof (optionDefaults as Options)[name] == "number"
+                  ? Number.parseInt(argument, 10) || 0
+                  : argument;
+              lastArgumentName.take();
+            }
+          },
+        );
       }
     }
 
-    return result.andThen(() => {
-      const checkLast: Result<O, ParseError> = last.isSome()
-        ? Err(new NotA_Switch(last.unwrapOr("")))
-        : Ok(def);
+    return result.andThen((opts) =>
+      lastArgumentName.mapOrElse(
+        (): Result<O, ParseError> => {
+          const res = opts as { help?: boolean };
+          const args = opts as O;
 
-      return checkLast.andThen((opts): Result<O, ParseError> => {
-        const res = opts as { help?: boolean };
+          const needHelp = res.help;
+          delete res.help;
+          if (needHelp) {
+            showHelp(args);
+            return Err(new HelpWasDisplayed());
+          }
+          return Ok(args) as unknown as Result<O, ParseError>;
+        },
+        (arg): Result<O, ParseError> => Err(new NotA_Switch(arg)),
+      )
+    )
+      .mapErr((err): ParseError => {
+        if (err instanceof HelpWasDisplayed) return err;
 
-        const needHelp = res.help;
-        delete res.help;
-        if (needHelp) {
-          showHelp(opts);
-          return Err(new HelpWasDisplayed());
-        }
-        return Ok(opts);
+        console.error("\n\n", err.toString(), "\n");
+        showHelp(optionDefaults);
+        return new HelpWasDisplayed();
       });
-    }).mapErr((err): ParseError => {
-      if (err instanceof HelpWasDisplayed) return err;
-
-      console.error("\n\n", err.toString(), "\n");
-      showHelp(def);
-      return new HelpWasDisplayed();
-    });
   }
 }
 

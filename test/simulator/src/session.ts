@@ -35,11 +35,7 @@ export class Session {
   }
 
   toString() {
-    return (`[(${
-      this.token.mapOrElse(() => " no  ", (_) => "token").unwrapOr(
-        "impossible",
-      )
-    }) ` +
+    return (`[(${this.token.mapOrElse(() => " no  ", (_) => "token")}) ` +
       (this.meta_ === null
         ? "NIL"
         : `${

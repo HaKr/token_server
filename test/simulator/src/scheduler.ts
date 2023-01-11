@@ -1,6 +1,6 @@
 import { Logging } from "./logging.ts";
 import { Session } from "./session.ts";
-import { None, optionFrom, Some } from "./deps.ts";
+import { None, Some } from "./deps.ts";
 import { Task } from "./tasks.ts";
 import { ToDo } from "./todo.ts";
 
@@ -25,7 +25,7 @@ export class Scheduler {
 
     return {
       next: () =>
-        optionFrom((async () => {
+        Some((async () => {
           let todo;
           do {
             todo = iterator.next();

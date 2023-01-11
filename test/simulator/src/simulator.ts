@@ -5,7 +5,7 @@ import { Logging } from "./logging.ts";
 import { metadata_collection } from "./mock/metadata_collection.js";
 import { Scheduler } from "./scheduler.ts";
 import { Session } from "./session.ts";
-import { Err, Ok, Result, ResultPromise } from "./deps.ts";
+import { Err, ErrPromise, Ok, Result, ResultPromise } from "./deps.ts";
 import { Task } from "./tasks.ts";
 import { ClientError, NoConnection, TokenClient } from "./token_client.ts";
 
@@ -74,34 +74,38 @@ export class Simulator {
     }
   }
 
-  async run(): Promise<SimulationResult> {
+  run(): ResultPromise<boolean, SimulationFailed> {
+    return Ok(this.go());
+  }
+
+  private async go(): Promise<SimulationResult> {
     const iter = this.scheduler.iter();
 
-    let result: Result<boolean, SimulationFailed>;
+    let result: Result<boolean, SimulationFailed> = Ok(true);
     do {
-      result = (await iter
+      await iter
         .next()
-        .mapOrElse(
-          () => Ok<boolean, SimulationFailed>(false),
+        .mapResult(
+          () => {
+            result = Ok<boolean, SimulationFailed>(false);
+          },
           (todo) => {
             const info = `${todo.session}  ${todo.task}`;
             return Simulator.taskMap[todo.task].call(this, todo.session)
               .mapOrElse(
                 (err) => {
                   if (err instanceof SimulationAborted) {
-                    return Err<boolean, SimulationFailed>(err);
+                    result = Err<boolean, SimulationFailed>(err);
                   } else {
                     this.logFailure(info, err.toString());
                   }
-                  return Ok<boolean, SimulationFailed>(true);
                 },
                 () => {
                   this.logSuccess(info);
-                  return Ok<boolean, SimulationFailed>(true);
                 },
               );
           },
-        )).unwrapOrElse(() => Ok(false));
+        );
     } while (result.unwrapOr(false));
 
     return result.map((looping) => !looping);
@@ -131,8 +135,8 @@ export class Simulator {
   ): SimulationTaskResult {
     return session
       .tokenOrElse(() => new MissingToken())
-      .mapOrElse(
-        Err,
+      .mapResult(
+        ErrPromise,
         (token) =>
           this.client.updateToken(
             token,
@@ -148,8 +152,8 @@ export class Simulator {
   protected refresh(session: Session): SimulationTaskResult {
     return session
       .tokenOrElse(() => new MissingToken())
-      .mapOrElse(
-        Err,
+      .mapResult(
+        ErrPromise,
         (token) =>
           this.client.updateToken(token)
             .map((update_result) =>
@@ -161,8 +165,8 @@ export class Simulator {
   protected remove(session: Session): SimulationTaskResult {
     return session
       .tokenOrElse(() => new MissingToken())
-      .mapOrElse(
-        Err,
+      .mapResult(
+        ErrPromise,
         (token) =>
           this.client.deleteToken(token)
             .map(() => session.clearToken())

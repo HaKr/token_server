@@ -1,4 +1,4 @@
-import { Option, optionFrom } from "./deps.ts";
+import { Option, Some } from "./deps.ts";
 
 enum Level {
   NONE,
@@ -9,26 +9,26 @@ enum Level {
   TRACE,
 }
 
-const levelLabel = {
-  [Level.NONE]: "",
-  [Level.ERROR]: "ERR",
-  [Level.WARNING]: "WRN",
-  [Level.INFO]: "INF",
-  [Level.DEBUG]: "DBG",
-  [Level.TRACE]: "TRC",
-};
+const levelLabel = new Map([
+  [Level.NONE, ""],
+  [Level.ERROR, "ERR"],
+  [Level.WARNING, "WRN"],
+  [Level.INFO, "INF"],
+  [Level.DEBUG, "DBG"],
+  [Level.TRACE, "TRC"],
+]);
 
 export class Logging {
-  static levelFromName: { [key: string]: Level } = {
-    "off": Level.NONE,
-    "error": Level.ERROR,
-    "warn": Level.WARNING,
-    "info": Level.INFO,
-    "debug": Level.DEBUG,
-    "trace": Level.TRACE,
-  };
+  static levelFromName = new Map([
+    ["off", Level.NONE],
+    ["error", Level.ERROR],
+    ["warn", Level.WARNING],
+    ["info", Level.INFO],
+    ["debug", Level.DEBUG],
+    ["trace", Level.TRACE],
+  ]);
   static level = Level.INFO;
-  static levelMap: { [key: string]: Level } = {};
+  static levelMap = new Map<string, Level>();
 
   private constructor(private module: string) {}
 
@@ -36,11 +36,13 @@ export class Logging {
     levels.split(",").forEach((assignment) => {
       const [name, levelName] = levelDefinition(assignment);
       levelName.mapOrElse(
-        () => Logging.level = Logging.levelFromName[name] || Level.INFO,
-        (levelName) =>
-          Logging.levelMap[name.toLowerCase()] =
-            Logging.levelFromName[levelName] ||
-            Logging.level,
+        () => {
+          Logging.level = Logging.levelFromName.get(name) || Level.INFO;
+        },
+        (levelName) => {
+          const lvl = Logging.levelFromName.get(levelName) || Logging.level;
+          Logging.levelMap.set(name.toLowerCase(), lvl);
+        },
       );
     });
   }
@@ -50,9 +52,8 @@ export class Logging {
   }
 
   static levelFor(module: string) {
-    return optionFrom(Logging.levelMap[module.toLowerCase()]).unwrapOrElse(() =>
-      Logging.level
-    );
+    return Some<number>(Logging.levelMap.get(module.toLowerCase()))
+      .unwrapOrElse(() => Logging.level);
   }
 
   error(...args: unknown[]) {
@@ -77,7 +78,10 @@ export class Logging {
 
   private log(level: Level, ...args: unknown[]) {
     if (Logging.levelFor(this.module) >= level) {
-      console.log(`${levelLabel[level]}-[${this.module.padEnd(11)}]`, ...args);
+      console.log(
+        `${levelLabel.get(level)}-[${this.module.padEnd(11)}]`,
+        ...args,
+      );
     }
     return args;
   }
@@ -87,5 +91,5 @@ Logging.configure(Deno.env.get("LOG") || "");
 
 function levelDefinition(assignment: string): [string, Option<string>] {
   const [moduleName, level] = assignment.split("=");
-  return [moduleName, optionFrom(level)];
+  return [moduleName, Some(level)];
 }
