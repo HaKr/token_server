@@ -11,4 +11,4 @@ export {
   type ResultPromise,
   Some,
   SomePromise,
-} from "file:///home/harry/projects/rusty-core/mod.ts"; // "https://deno.land/x/rusty_core@v1.1.22/mod.ts";
+} from "https://deno.land/x/rusty_core@v3.0.2/mod.ts";
