@@ -11,6 +11,8 @@ export const metadata_collection = [
         answer: 42
     },
 
+    42,
+
     {
         year: "2022",
         week: 47

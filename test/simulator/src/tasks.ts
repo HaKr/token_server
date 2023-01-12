@@ -1,4 +1,4 @@
-export enum Task {
+export enum TaskName {
   Create = "create",
   Update = "update",
   Refresh = "refresh",

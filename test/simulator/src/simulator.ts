@@ -1,27 +1,25 @@
-import { Meta } from "./api.ts";
-import { MissingToken, SimulationAborted } from "./error.ts";
-import { SimulationFailed } from "./error.ts";
+import { isMeta, maxWidth, Meta } from "./api.ts";
+import { MissingToken, SimulationAborted, SimulationFailed } from "./error.ts";
 import { Logging } from "./logging.ts";
 import { metadata_collection } from "./mock/metadata_collection.js";
 import { Scheduler } from "./scheduler.ts";
 import { Session } from "./session.ts";
-import { Err, ErrPromise, Ok, Result, ResultPromise } from "./deps.ts";
-import { Task } from "./tasks.ts";
+import { Err, Ok, OkPromise, Result, ResultPromise, Some } from "./deps.ts";
+import { TaskName } from "./tasks.ts";
 import { ClientError, NoConnection, TokenClient } from "./token_client.ts";
 
-type SimulationResult = Result<boolean, SimulationFailed>;
 type SimulationTaskResult = ResultPromise<unknown, SimulationFailed>;
-export type TaskExecutor = (session: Session) => SimulationTaskResult;
+type TaskExecutor = (session: Session) => SimulationTaskResult;
 
 export class Simulator {
   static LOGGER = Logging.for(Simulator.name);
-  static taskMap: { [key: string]: TaskExecutor } = {
-    [Task.Create]: Simulator.prototype.create,
-    [Task.Update]: Simulator.prototype.update,
-    [Task.UpdateWithError]: Simulator.prototype.updateWithXml,
-    [Task.Refresh]: Simulator.prototype.refresh,
-    [Task.Remove]: Simulator.prototype.remove,
-  };
+  static taskMap = new Map<TaskName, TaskExecutor>([
+    [TaskName.Create, Simulator.prototype.create],
+    [TaskName.Update, Simulator.prototype.update],
+    [TaskName.UpdateWithError, Simulator.prototype.updateWithXml],
+    [TaskName.Refresh, Simulator.prototype.refresh],
+    [TaskName.Remove, Simulator.prototype.remove],
+  ]);
 
   static clientErrorToSimulationResult(
     err: ClientError,
@@ -32,9 +30,15 @@ export class Simulator {
     return new SimulationFailed(err);
   }
 
-  client = new TokenClient();
-  created = Date.now();
-  scheduler;
+  static create(
+    def: { name: string; includeErrors: boolean; randomWait: number },
+  ) {
+    return new Simulator(def.name, def.includeErrors, def.randomWait);
+  }
+
+  private client = new TokenClient();
+  private created = Date.now();
+  private scheduler;
 
   constructor(
     public name: string,
@@ -45,29 +49,25 @@ export class Simulator {
     this.scheduler = new Scheduler(random_wait > 0);
     for (
       const assignment of metadata_collection.filter((candidate) =>
-        include_errors || candidate !== null
+        include_errors || isMeta(candidate)
       )
     ) {
-      assert(
-        assignment == null || typeof assignment == "object",
-        "Illegal input format",
-      );
-      const delays = generateDelays(random_wait);
+      const delays = generateRandomDelays(random_wait);
       let when = 0;
-      const session = new Session(assignment as Meta);
+      const session = new Session(assignment as Meta); // deliberately surpassing check for correct input data
       for (
-        const task of [Task.Create, Task.Update].concat(
-          include_errors && index == 1 ? Task.Remove : [],
+        const task of [TaskName.Create, TaskName.Update].concat(
+          include_errors && index == 1 ? TaskName.Remove : [],
         ).concat(
-          include_errors && index == 3 ? Task.UpdateWithError : [],
+          include_errors && index == 3 ? TaskName.UpdateWithError : [],
         )
-          .concat(Task.Refresh)
+          .concat(TaskName.Refresh)
       ) {
         when += delays.next().value!;
         this.scheduler.schedule(
           when,
           task,
-          session, // deliberately surpassing check for correct input data
+          session,
         );
       }
       index++;
@@ -75,40 +75,40 @@ export class Simulator {
   }
 
   run(): ResultPromise<boolean, SimulationFailed> {
-    return Ok(this.go());
-  }
+    return Ok((async () => {
+      const iter = this.scheduler.iter();
 
-  private async go(): Promise<SimulationResult> {
-    const iter = this.scheduler.iter();
+      let result: Result<boolean, SimulationFailed>;
+      do {
+        result = await iter
+          .next()
+          .mapResult(
+            () => OkPromise<boolean, SimulationFailed>(false),
+            (todo) => {
+              const info = `${todo.session}  ${todo.task}`;
+              return Some(Simulator.taskMap.get(todo.task))
+                .okOrElse<SimulationFailed>(() => new SimulationAborted())
+                .map((executor) => executor.call(this, todo.session))
+                .mapResult(
+                  (err) => {
+                    if (err instanceof SimulationAborted) {
+                      return Err<boolean, SimulationFailed>(err);
+                    } else {
+                      this.logFailure(info, err.toString());
+                      return Ok(true);
+                    }
+                  },
+                  () => {
+                    this.logSuccess(info);
+                    return Ok(true);
+                  },
+                );
+            },
+          );
+      } while (result.unwrapOr(false));
 
-    let result: Result<boolean, SimulationFailed> = Ok(true);
-    do {
-      await iter
-        .next()
-        .mapResult(
-          () => {
-            result = Ok<boolean, SimulationFailed>(false);
-          },
-          (todo) => {
-            const info = `${todo.session}  ${todo.task}`;
-            return Simulator.taskMap[todo.task].call(this, todo.session)
-              .mapOrElse(
-                (err) => {
-                  if (err instanceof SimulationAborted) {
-                    result = Err<boolean, SimulationFailed>(err);
-                  } else {
-                    this.logFailure(info, err.toString());
-                  }
-                },
-                () => {
-                  this.logSuccess(info);
-                },
-              );
-          },
-        );
-    } while (result.unwrapOr(false));
-
-    return result.map((looping) => !looping);
+      return result;
+    })());
   }
 
   shutdownServer() {
@@ -135,8 +135,7 @@ export class Simulator {
   ): SimulationTaskResult {
     return session
       .tokenOrElse(() => new MissingToken())
-      .mapResult(
-        ErrPromise,
+      .andThen(
         (token) =>
           this.client.updateToken(
             token,
@@ -152,8 +151,7 @@ export class Simulator {
   protected refresh(session: Session): SimulationTaskResult {
     return session
       .tokenOrElse(() => new MissingToken())
-      .mapResult(
-        ErrPromise,
+      .andThen(
         (token) =>
           this.client.updateToken(token)
             .map((update_result) =>
@@ -165,8 +163,7 @@ export class Simulator {
   protected remove(session: Session): SimulationTaskResult {
     return session
       .tokenOrElse(() => new MissingToken())
-      .mapResult(
-        ErrPromise,
+      .andThen(
         (token) =>
           this.client.deleteToken(token)
             .map(() => session.clearToken())
@@ -197,19 +194,9 @@ export class Simulator {
   }
 }
 
-function maxWidth(str: string, width: number) {
-  if (str.length <= width) return str;
-  const half = (width - 5) / 2;
-  return `${str.slice(0, half)} ... ${str.slice(-half)}`;
-}
-
-function* generateDelays(maxSeconds: number) {
+function* generateRandomDelays(maxSeconds: number) {
   yield 0;
   while (true) {
     yield maxSeconds == 0 ? 1 : Math.round(Math.random() * maxSeconds * 1000);
   }
-}
-
-function assert(predicate: boolean, msg?: string | undefined): void | never {
-  if (!predicate) throw new Error(msg || "Assertion failed");
 }

@@ -1,7 +1,7 @@
 import { Logging } from "./logging.ts";
 import { Session } from "./session.ts";
 import { None, Some } from "./deps.ts";
-import { Task } from "./tasks.ts";
+import { TaskName } from "./tasks.ts";
 import { ToDo } from "./todo.ts";
 
 export class Scheduler {
@@ -15,7 +15,7 @@ export class Scheduler {
       : (_: number) => Promise.resolve();
   }
 
-  schedule(when: number, task: Task, session: Session) {
+  schedule(when: number, task: TaskName, session: Session) {
     this.tasks.push(new ToDo(session, task, when > 0 ? Date.now() + when : 0));
   }
 
@@ -29,13 +29,13 @@ export class Scheduler {
           let todo;
           do {
             todo = iterator.next();
-            if (todo.done) return Promise.resolve(None<ToDo>());
+            if (todo.done) return None<ToDo>();
           } while (!todo.value.shouldExecute());
           const now = Date.now();
           if (this.doSleep && todo.value.when > now) {
             const ms = todo.value.when - now;
             Scheduler.LOGGER.trace(
-              `Wait ${ms}ms before ${todo.value.task} on ${todo.value.session}`,
+              `Wait ${ms}ms before ${todo.value}`,
             );
             await this.wait(ms);
           }

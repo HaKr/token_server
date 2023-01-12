@@ -1,15 +1,8 @@
 import { CommandLine } from "./clap.ts";
-import { None } from "./deps.ts";
+import { None, Option, Some } from "./deps.ts";
 import { Simulator } from "./simulator.ts";
 
-type Options = {
-  name: string;
-  include_errors: boolean;
-  random_wait: number;
-  shutdown_after: number;
-};
-
-const options: Options = {
+const options = {
   name: "sim",
   include_errors: false,
   random_wait: 0,
@@ -21,19 +14,18 @@ CommandLine.parse(options, showHelp)
     async (options) => {
       Simulator.LOGGER.debug(options);
 
-      const simulator = new Simulator(
-        options.name,
-        options.include_errors,
-        options.random_wait,
-      );
+      const simulator = Simulator.create({
+        name: options.name,
+        includeErrors: options.include_errors,
+        randomWait: options.random_wait,
+      });
 
-      const handle = None<number>();
-      if (options.shutdown_after > 0) {
-        handle.insert(setTimeout(
+      const handle: Option<number> = (options.shutdown_after < 1)
+        ? None()
+        : Some(setTimeout(
           () => simulator.shutdownServer(),
           options.shutdown_after * 1000,
         ));
-      }
 
       await simulator
         .run()
@@ -46,7 +38,7 @@ CommandLine.parse(options, showHelp)
     },
   );
 
-function showHelp(opts: Options) {
+function showHelp(opts: typeof options) {
   console.log(`  
 Usage: LOG=[default LEVEL],tokenclient=[LEVEL],simulator=[LEVEL],scheduler=[LEVEL] deno run --allow-net --allow-env src/main.ts [OPTIONS]
 

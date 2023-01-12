@@ -1,4 +1,10 @@
-import { Meta, TokenUpdateResponseBody, TokenUpdateResult } from "./api.ts";
+import {
+  formatMeta,
+  maxWidth,
+  Meta,
+  TokenUpdateResponseBody,
+  TokenUpdateResult,
+} from "./api.ts";
 import { Err, Ok, Result, ResultPromise } from "./deps.ts";
 import { Logging } from "./logging.ts";
 import { Failure } from "./error.ts";
@@ -17,12 +23,12 @@ const CONTENT_XML = {
 export class TokenClient {
   static LOGGER = Logging.for(TokenClient.name);
   static SERVER = "http://127.0.0.1:3666";
-  static ENDPOINT_TOKEN = `${TokenClient.SERVER}/token`;
-  static ENDPOINT_DUMP = `${TokenClient.SERVER}/dump`;
-  static ENDPOINT_PING = `${TokenClient.SERVER}/ping`;
-  static ENDPOINT_SHUTDOWN = `${TokenClient.SERVER}/shutdown`;
+  static ENDPOINT_TOKEN = new URL(`${TokenClient.SERVER}/token`);
+  static ENDPOINT_DUMP = new URL(`${TokenClient.SERVER}/dump`);
+  static ENDPOINT_PING = new URL(`${TokenClient.SERVER}/ping`);
+  static ENDPOINT_SHUTDOWN = new URL(`${TokenClient.SERVER}/shutdown`);
 
-  public ping(): FutureClientResult<true> {
+  public ping(): FutureClientResult<boolean> {
     return this.fetch(
       TokenClient.ENDPOINT_PING,
       {
@@ -98,44 +104,57 @@ export class TokenClient {
   }
 
   private fetchJson<T extends Meta = Meta>(
-    url: string,
+    url: URL,
     options: RequestInit,
   ): FutureClientResult<T> {
-    const event = TokenClient.LOGGER.debug(
-      `${options.method} ${url} ${options.body}`,
+    const event = `${options.method} ${url.pathname}`;
+    TokenClient.LOGGER.debug(
+      `${event} ${options.body}`,
     );
-    const result: FutureClientResult<Meta> = this.fetch(url, options)
+    return this.fetch(url, options)
       .andThen(async (response) => {
         if (response.headers.get("content-type") == "application/json") {
-          return Ok<Meta, ClientError>(await response.json());
-        } else {return Err<T, ClientError>(
+          return Ok<[number, Meta], ClientError>([
+            response.status,
+            await response.json(),
+          ]);
+        } else {return Err<[number, Meta], ClientError>(
             new UnsupportedContentTypeResponse(
               response.headers.get("content-type"),
             ),
           );}
-      });
-
-    result.map((result) => TokenClient.LOGGER.trace(...event, ` ->`, result));
-
-    return result as FutureClientResult<T>;
+      })
+      .map(([statusCode, result]) => {
+        TokenClient.LOGGER.trace(
+          event,
+          `->`,
+          `[${statusCode}]`,
+          formatMeta(result),
+        );
+        return result;
+      }) as FutureClientResult<T>;
   }
   private fetchText(
-    url: string,
+    url: URL,
     options: RequestInit,
   ): FutureClientResult<string> {
-    const event = TokenClient.LOGGER.trace(
-      `${options.method} ${url} ${options.body}`,
+    const event = `${options.method} ${url.pathname}`;
+    TokenClient.LOGGER.trace(
+      `${event} ${options.body}`,
     );
 
-    const result = this.fetch(url, options)
-      .map(async (response) => await response.text());
-
-    TokenClient.LOGGER.trace(...event, ` ->`, result);
-    return result;
+    return this.fetch(url, options)
+      .map<[number, string]>(async (response) => {
+        return [response.status, await response.text()];
+      })
+      .map(([statusCode, text]) => {
+        TokenClient.LOGGER.trace(event, `->`, `[${statusCode}]`, text);
+        return text;
+      });
   }
 
   protected fetch(
-    url: string,
+    url: URL,
     options: RequestInit,
   ): FutureClientResult<Response> {
     return Ok(
@@ -171,7 +190,13 @@ export class TokenClient {
             ? Err(new NoConnection())
             : Err(new UnrecognizedFailure(err));
         }),
-    );
+    ).mapErr((err) => {
+      TokenClient.LOGGER.trace(
+        `${options.method} ${url.pathname} ->`,
+        maxWidth(err.toString(), 150),
+      );
+      return Err(err);
+    });
   }
 }
 

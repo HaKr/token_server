@@ -53,7 +53,7 @@ export class Logging {
 
   static levelFor(module: string) {
     return Some<number>(Logging.levelMap.get(module.toLowerCase()))
-      .unwrapOrElse(() => Logging.level);
+      .unwrapOr(Logging.level);
   }
 
   error(...args: unknown[]) {

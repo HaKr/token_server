@@ -1,4 +1,4 @@
-import { Meta } from "./api.ts";
+import { formatMeta, Meta } from "./api.ts";
 import { None, Result } from "./deps.ts";
 
 export class Session {
@@ -35,22 +35,9 @@ export class Session {
   }
 
   toString() {
-    return (`[(${this.token.mapOrElse(() => " no  ", (_) => "token")}) ` +
-      (this.meta_ === null
-        ? "NIL"
-        : `${
-          this.meta_.lastName
-            ? this.meta_.lastName
-            : this.meta_.year
-            ? this.meta_.year
-            : ""
-        }`) +
-      `${
-        (this.meta_ !== null && (this.meta_.lastName || this.meta_.year)) &&
-          this.meta_.updatedAt
-          ? `, ${this.meta_.updatedAt}`
-          : ""
-      }`)
-      .padEnd(38) + "]";
+    return (
+      `[(${this.token.mapOrElse(() => " no  ", (_) => "token")}) ` +
+      formatMeta(this.meta_)
+    ).padEnd(38) + "]";
   }
 }

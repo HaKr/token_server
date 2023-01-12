@@ -1,19 +1,7 @@
 import { Err, None, Ok, Result } from "./deps.ts";
+import { ParseError } from "./error.ts";
 
 type Options = { [key: string]: string | number | boolean };
-
-export abstract class ParseError {
-  constructor(public arg: string) {}
-
-  toString() {
-    return `${
-      this.constructor.name.replace(/(\w)([A-Z])/g, (_sub, ...args) => {
-        const [a, b] = args as string[];
-        return `${a == "_" ? "" : a} ${b.toLowerCase()}`;
-      })
-    }: ${this.arg}`;
-  }
-}
 
 export class CommandLine {
   static parse<O extends Options>(
@@ -44,7 +32,7 @@ export class CommandLine {
             }
           },
           (arg) => {
-            result = Err<O, ParseError>(new MissingA_ValueFor(arg));
+            result = Err<O, ParseError>(new MissingAValueFor(arg));
           },
         );
       } else { // does not start with --
@@ -81,7 +69,7 @@ export class CommandLine {
           }
           return Ok(args) as unknown as Result<O, ParseError>;
         },
-        (arg): Result<O, ParseError> => Err(new NotA_Switch(arg)),
+        (arg): Result<O, ParseError> => Err(new NotASwitch(arg)),
       )
     )
       .mapErr((err): ParseError => {
@@ -96,9 +84,9 @@ export class CommandLine {
 
 export class DanglingValue extends ParseError {}
 export class UnknownArgument extends ParseError {}
-export class NotA_Switch extends ParseError {}
+export class NotASwitch extends ParseError {}
 export class MustHaveNoValue extends ParseError {}
-export class MissingA_ValueFor extends ParseError {}
+export class MissingAValueFor extends ParseError {}
 export class CouldNotUnwrap extends ParseError {}
 export class HelpWasDisplayed extends ParseError {
   constructor() {
