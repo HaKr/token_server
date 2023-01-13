@@ -1,6 +1,4 @@
-import { Err, None, Ok, ParseError, Result } from "./deps.ts";
-
-type Options = { [key: string]: string | number | boolean };
+import { Err, None, Ok, Options, ParseError, Result } from "./deps.ts";
 
 export class CommandLine {
   static parse<O extends Options>(

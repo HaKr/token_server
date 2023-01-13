@@ -13,9 +13,17 @@ export {
   SomePromise,
 } from "https://deno.land/x/rusty_core@v3.0.6/src/lib.ts";
 
-export type { Meta, SimulationResult } from "./api.ts";
-export { isMeta, maxWidth } from "./api.ts";
+export type {
+  Meta,
+  Options,
+  TokenInfo,
+  TokenUpdateRequestBody,
+  TokenUpdateResponseBody,
+  TokenUpdateResult,
+} from "./api.ts";
+export { formatMeta, isMeta, maxWidth } from "./api.ts";
 export {
+  Failure,
   MissingToken,
   ParseError,
   SimulationAborted,
@@ -31,3 +39,4 @@ export { Session } from "./session.ts";
 export { TaskName } from "./tasks.ts";
 export { ClientError, NoConnection, TokenClient } from "./token_client.ts";
 export { Simulator } from "./simulator.ts";
+export { ToDo } from "./todo.ts";

@@ -1,8 +1,4 @@
-import { Logging } from "./logging.ts";
-import { Session } from "./session.ts";
-import { None, Some } from "./deps.ts";
-import { TaskName } from "./tasks.ts";
-import { ToDo } from "./todo.ts";
+import { Logging, None, Session, Some, TaskName, ToDo } from "./deps.ts";
 
 export class Scheduler {
   static LOGGER = Logging.for(Scheduler.name);

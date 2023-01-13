@@ -1,28 +1,3 @@
-import {
-  ClientError,
-  Err,
-  isMeta,
-  Logging,
-  maxWidth,
-  Meta,
-  metadata_collection,
-  MissingToken,
-  NoConnection,
-  Ok,
-  OkPromise,
-  Result,
-  ResultPromise,
-  Scheduler,
-  Session,
-  SimulationAborted,
-  SimulationFailed,
-  SimulationTaskUnknown,
-  SimulationUnknownError,
-  Some,
-  TaskName,
-  TokenClient,
-} from "./deps.ts";
-
 type SimulationTaskResult = ResultPromise<unknown, SimulationFailed>;
 type TaskExecutor = (session: Session) => SimulationTaskResult;
 
@@ -217,3 +192,28 @@ function* generateRandomDelays(maxSeconds: number) {
     yield maxSeconds == 0 ? 1 : Math.round(Math.random() * maxSeconds * 1000);
   }
 }
+
+import {
+  ClientError,
+  Err,
+  isMeta,
+  Logging,
+  maxWidth,
+  Meta,
+  metadata_collection,
+  MissingToken,
+  NoConnection,
+  Ok,
+  OkPromise,
+  Result,
+  ResultPromise,
+  Scheduler,
+  Session,
+  SimulationAborted,
+  SimulationFailed,
+  SimulationTaskUnknown,
+  SimulationUnknownError,
+  Some,
+  TaskName,
+  TokenClient,
+} from "./deps.ts";

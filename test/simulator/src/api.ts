@@ -1,6 +1,5 @@
-import { Result, SimulationFailed } from "./deps.ts";
-
-export type Meta = { [key: string]: unknown };
+export type Options = { [key: string]: string | number | boolean };
+export type Meta = Partial<Options>;
 export type TokenInfo = { created: number; token: string; events: string[] };
 export type TokenUpdateRequestBody = { token: string; meta?: Meta };
 export type TokenUpdateResult = { token: string; meta: Meta };
@@ -24,5 +23,3 @@ export function maxWidth(str: string, width: number) {
   const half = (width - 5) / 2;
   return `${str.slice(0, half)} ... ${str.slice(-half)}`;
 }
-
-export type SimulationResult = Result<void, SimulationFailed>;

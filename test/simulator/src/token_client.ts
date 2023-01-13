@@ -1,13 +1,17 @@
 import {
+  Err,
+  Failure,
   formatMeta,
+  Logging,
   maxWidth,
   Meta,
+  Ok,
+  Result,
+  ResultPromise,
   TokenUpdateResponseBody,
   TokenUpdateResult,
-} from "./api.ts";
-import { Err, Ok, Result, ResultPromise } from "./deps.ts";
-import { Logging } from "./logging.ts";
-import { Failure } from "./error.ts";
+} from "./deps.ts";
+import {} from "./deps.ts";
 
 export type ClientResult<T> = Result<T, ClientError>;
 export type FutureClientResult<T> = ResultPromise<T, ClientError>;
@@ -103,7 +107,7 @@ export class TokenClient {
     );
   }
 
-  private fetchJson<T extends Meta = Meta>(
+  private fetchJson<T extends { [key: string]: unknown }>(
     url: URL,
     options: RequestInit,
   ): FutureClientResult<T> {
