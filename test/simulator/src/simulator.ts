@@ -1,12 +1,27 @@
-import { isMeta, maxWidth, Meta } from "./api.ts";
-import { MissingToken, SimulationAborted, SimulationFailed } from "./error.ts";
-import { Logging } from "./logging.ts";
-import { metadata_collection } from "./mock/metadata_collection.js";
-import { Scheduler } from "./scheduler.ts";
-import { Session } from "./session.ts";
-import { Err, Ok, OkPromise, Result, ResultPromise, Some } from "./deps.ts";
-import { TaskName } from "./tasks.ts";
-import { ClientError, NoConnection, TokenClient } from "./token_client.ts";
+import {
+  ClientError,
+  Err,
+  isMeta,
+  Logging,
+  maxWidth,
+  Meta,
+  metadata_collection,
+  MissingToken,
+  NoConnection,
+  Ok,
+  OkPromise,
+  Result,
+  ResultPromise,
+  Scheduler,
+  Session,
+  SimulationAborted,
+  SimulationFailed,
+  SimulationTaskUnknown,
+  SimulationUnknownError,
+  Some,
+  TaskName,
+  TokenClient,
+} from "./deps.ts";
 
 type SimulationTaskResult = ResultPromise<unknown, SimulationFailed>;
 type TaskExecutor = (session: Session) => SimulationTaskResult;
@@ -27,7 +42,7 @@ export class Simulator {
     if (err instanceof NoConnection) {
       return new SimulationAborted("server unavailable");
     }
-    return new SimulationFailed(err);
+    return new SimulationUnknownError(err);
   }
 
   static create(
@@ -87,7 +102,9 @@ export class Simulator {
             (todo) => {
               const info = `${todo.session}  ${todo.task}`;
               return Some(Simulator.taskMap.get(todo.task))
-                .okOrElse<SimulationFailed>(() => new SimulationAborted())
+                .okOrElse<SimulationFailed>(() =>
+                  new SimulationTaskUnknown(todo.task)
+                )
                 .map((executor) => executor.call(this, todo.session))
                 .mapResult(
                   (err) => {

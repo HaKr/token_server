@@ -1,6 +1,4 @@
-import { CommandLine } from "./clap.ts";
-import { None, Option, Some } from "./deps.ts";
-import { Simulator } from "./simulator.ts";
+import { CommandLine, None, Option, Simulator, Some } from "./deps.ts";
 
 const options = {
   name: "sim",

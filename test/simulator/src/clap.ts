@@ -1,5 +1,4 @@
-import { Err, None, Ok, Result } from "./deps.ts";
-import { ParseError } from "./error.ts";
+import { Err, None, Ok, ParseError, Result } from "./deps.ts";
 
 type Options = { [key: string]: string | number | boolean };
 

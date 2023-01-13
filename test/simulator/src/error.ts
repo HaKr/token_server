@@ -1,5 +1,3 @@
-import { Result } from "./deps.ts";
-
 export abstract class Failure {
   constructor(public reason?: unknown) {}
 
@@ -17,8 +15,12 @@ export abstract class Failure {
 
 export abstract class ParseError extends Failure {}
 
-export type SimulationResult = Result<void, SimulationFailed>;
-export class SimulationFailed extends Failure {}
-
+export abstract class SimulationFailed extends Failure {}
 export class SimulationAborted extends SimulationFailed {}
+export class SimulationTaskUnknown extends SimulationFailed {
+  constructor(private taskName: string) {
+    super(taskName);
+  }
+}
 export class MissingToken extends SimulationFailed {}
+export class SimulationUnknownError extends Failure {}
